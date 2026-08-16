@@ -26,7 +26,7 @@
 <nav class="nav" aria-label="Main navigation">
   <div class="nav-inner">
     <a href="/" class="nav-brand" onclick={closeMobileMenu}>
-      Sorcery TCG
+      <img src="/logo.png" alt="Sorcery TCG" class="nav-logo" />
     </a>
 
     <QuickSearch />
@@ -116,15 +116,19 @@
   }
 
   .nav-brand {
-    font-family: var(--font-heading);
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--color-accent);
+    display: flex;
+    align-items: center;
     white-space: nowrap;
   }
 
   .nav-brand:hover {
     text-decoration: none;
+  }
+
+  .nav-logo {
+    height: 36px;
+    width: auto;
+    display: block;
   }
 
   .nav-links {
