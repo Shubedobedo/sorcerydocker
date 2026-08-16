@@ -30,6 +30,16 @@
       <h2>Cube Builder</h2>
       <p>Create custom cubes and generate draft packs for your group.</p>
     </a>
+
+    <a href="/trades" class="feature-card">
+      <h2>Trade Binder</h2>
+      <p>Mark cards for trade, track locations, and manage your trades.</p>
+    </a>
+
+    <a href="/friends" class="feature-card">
+      <h2>Friends</h2>
+      <p>Connect with friends and share your decks, cubes, and collection.</p>
+    </a>
   </div>
 </div>
 
