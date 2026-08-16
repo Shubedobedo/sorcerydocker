@@ -18,9 +18,6 @@ FROM node:20-alpine AS production
 
 WORKDIR /app
 
-# Create non-root user
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-
 # Copy built app and production dependencies
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/node_modules ./node_modules
@@ -30,10 +27,7 @@ COPY --from=builder /app/drizzle.config.js ./
 COPY --from=builder /app/src/lib/db ./src/lib/db
 
 # Create data directory for SQLite
-RUN mkdir -p /app/data && chown -R appuser:appgroup /app/data
-
-# Switch to non-root user
-USER appuser
+RUN mkdir -p /app/data
 
 # Expose port
 EXPOSE 3000
