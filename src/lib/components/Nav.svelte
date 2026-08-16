@@ -25,6 +25,15 @@
 
 <nav class="nav" aria-label="Main navigation">
   <div class="nav-inner">
+    <button
+      class="mobile-toggle"
+      onclick={toggleMobileMenu}
+      aria-label="Toggle navigation menu"
+      aria-expanded={mobileMenuOpen}
+    >
+      <span class="hamburger" class:open={mobileMenuOpen}></span>
+    </button>
+
     <a href="/" class="nav-brand" onclick={closeMobileMenu}>
       Sorcery TCG
     </a>
@@ -57,6 +66,28 @@
           </a>
         </li>
       {/if}
+
+      {#if session?.user}
+        <li class="mobile-only">
+          <a
+            href="/profile"
+            class="nav-link"
+            class:active={$page.url.pathname === '/profile'}
+            onclick={closeMobileMenu}
+          >
+            Profile
+          </a>
+        </li>
+        <li class="mobile-only">
+          <form method="POST" action="/auth/signout">
+            <button type="submit" class="nav-link signout-link">Sign Out</button>
+          </form>
+        </li>
+      {:else}
+        <li class="mobile-only">
+          <a href="/login" class="nav-link" onclick={closeMobileMenu}>Sign In</a>
+        </li>
+      {/if}
     </ul>
 
     <div class="nav-user">
@@ -81,15 +112,6 @@
         <a href="/login" class="btn btn-primary btn-sm">Sign In</a>
       {/if}
     </div>
-
-    <button
-      class="mobile-toggle"
-      onclick={toggleMobileMenu}
-      aria-label="Toggle navigation menu"
-      aria-expanded={mobileMenuOpen}
-    >
-      <span class="hamburger" class:open={mobileMenuOpen}></span>
-    </button>
   </div>
 </nav>
 
@@ -238,6 +260,7 @@
   @media (max-width: 768px) {
     .mobile-toggle {
       display: block;
+      order: -1;
     }
 
     .nav-links {
@@ -264,5 +287,25 @@
     .nav-user {
       display: none;
     }
+  }
+
+  .mobile-only {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .mobile-only {
+      display: list-item;
+    }
+  }
+
+  .signout-link {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    font-size: 0.875rem;
+    font-family: inherit;
   }
 </style>
