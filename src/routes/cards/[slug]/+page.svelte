@@ -141,15 +141,15 @@
           <dd>
             {#if data.card.set_ids}
               {@const setIds = JSON.parse(data.card.set_ids || '[]')}
-              {#if setIds.length > 1}
+              {#if setIds.length > 0}
                 {#each setIds as setId, i}
                   <span class="set-badge">{setId}</span>{#if i < setIds.length - 1}{' '}{/if}
                 {/each}
               {:else}
-                {data.card.set_name || 'Unknown'}
+                <span class="set-badge">{data.card.set_name || 'Unknown'}</span>
               {/if}
             {:else}
-              {data.card.set_name || 'Unknown'}
+              <span class="set-badge">{data.card.set_name || 'Unknown'}</span>
             {/if}
           </dd>
 
