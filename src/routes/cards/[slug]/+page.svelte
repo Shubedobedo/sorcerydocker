@@ -138,7 +138,20 @@
           <dd>{data.card.rarity || 'Unknown'}</dd>
 
           <dt>Set</dt>
-          <dd>{data.card.set_name || 'Unknown'}</dd>
+          <dd>
+            {#if data.card.set_ids}
+              {@const setIds = JSON.parse(data.card.set_ids || '[]')}
+              {#if setIds.length > 1}
+                {#each setIds as setId, i}
+                  <span class="set-badge">{setId}</span>{#if i < setIds.length - 1}{' '}{/if}
+                {/each}
+              {:else}
+                {data.card.set_name || 'Unknown'}
+              {/if}
+            {:else}
+              {data.card.set_name || 'Unknown'}
+            {/if}
+          </dd>
 
           {#if data.session?.user}
             <dt>In Collection</dt>
@@ -303,6 +316,16 @@
 
   .card-meta dd {
     margin: 0;
+  }
+
+  .set-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    font-size: 0.8rem;
+    text-transform: capitalize;
   }
 
   .card-description {
