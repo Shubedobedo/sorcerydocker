@@ -25,13 +25,29 @@ export async function POST({ locals, request, params }) {
   // Fetch all cards from the database
   let allCards = await db.select().from(cards);
 
+  // Get all card images so we can filter out Box_Topper-only cards per set
+  const allImages = await db.select().from(cardImages);
+
   // Filter by sets — check if any of the card's sets match the allowed sets
+  // AND the card has at least one non-Box_Topper variant in that set
   if (allowedSets.length > 0) {
     allCards = allCards.filter((c) => {
       const cardSets = JSON.parse(c.set_ids || '[]');
-      // Fall back to set_id if set_ids not populated yet
-      if (cardSets.length === 0) return allowedSets.includes(c.set_id);
-      return cardSets.some((s) => allowedSets.includes(s));
+      const setsToCheck = cardSets.length > 0 ? cardSets : [c.set_id];
+
+      // Card must be in at least one allowed set
+      const matchingSets = setsToCheck.filter((s) => allowedSets.includes(s));
+      if (matchingSets.length === 0) return false;
+
+      // Card must have at least one non-Box_Topper image in one of the matching sets
+      const hasNonBoxTopper = allImages.some(
+        (img) =>
+          img.card_id === c.id &&
+          matchingSets.includes(img.set_id) &&
+          !img.art_type.includes('Box_Topper')
+      );
+
+      return hasNonBoxTopper;
     });
   }
 
