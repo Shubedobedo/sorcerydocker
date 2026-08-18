@@ -7,6 +7,7 @@
     sets: data.cube.settings.sets || [],
     elements: data.cube.settings.elements || [],
     cubeSize: data.cube.settings.cubeSize || 360,
+    includeAvatars: data.cube.settings.includeAvatars || false,
     rarities: data.cube.settings.rarities || {
       Ordinary: { enabled: true, max: 4 },
       Exceptional: { enabled: true, max: 3 },
@@ -147,6 +148,15 @@
           </div>
         {/each}
       </div>
+    </section>
+
+    <section class="setting-section">
+      <h2>Avatars</h2>
+      <p>Include one random avatar in the cube pool.</p>
+      <label class="rarity-toggle">
+        <input type="checkbox" bind:checked={settings.includeAvatars} />
+        <span>Include Avatars</span>
+      </label>
     </section>
   </div>
 

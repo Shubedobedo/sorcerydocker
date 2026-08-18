@@ -19,7 +19,8 @@ export async function POST({ locals, request, params }) {
     sets: allowedSets = [],
     elements: allowedElements = [],
     rarities = {},
-    cubeSize = 360
+    cubeSize = 360,
+    includeAvatars = false
   } = settings;
 
   // Fetch all cards from the database
@@ -50,6 +51,10 @@ export async function POST({ locals, request, params }) {
       return hasNonBoxTopper;
     });
   }
+
+  // Separate avatars from the main pool
+  const avatarCards = allCards.filter((c) => c.type === 'Avatar');
+  allCards = allCards.filter((c) => c.type !== 'Avatar');
 
   // Filter by elements — ALL of a card's elements must be in the allowed set
   if (allowedElements.length > 0) {
@@ -113,6 +118,13 @@ export async function POST({ locals, request, params }) {
 
   // Clear existing cube cards and insert new pool
   await db.delete(cubeCards).where(eq(cubeCards.cube_id, cube.id));
+
+  // If avatars are included, pick one random avatar and add it
+  if (includeAvatars && avatarCards.length > 0) {
+    const randomAvatar = avatarCards[Math.floor(Math.random() * avatarCards.length)];
+    pool[randomAvatar.id] = 1;
+    totalAdded += 1;
+  }
 
   for (const [cardId, quantity] of Object.entries(pool)) {
     await db.insert(cubeCards).values({

@@ -10,9 +10,15 @@
 
   // Group cards by element then by spells vs sites for text view
   // Multi-element cards go into a separate "Multi" group
+  // Avatars get their own section
+  let avatarCards = $derived(() => {
+    return data.pool.filter((cc) => cc.card.type === 'Avatar');
+  });
+
   let cardsByElement = $derived(() => {
     const groups = { Air: { spells: [], sites: [] }, Earth: { spells: [], sites: [] }, Fire: { spells: [], sites: [] }, Water: { spells: [], sites: [] }, Multi: { spells: [], sites: [] }, None: { spells: [], sites: [] } };
     for (const cc of data.pool) {
+      if (cc.card.type === 'Avatar') continue; // handled separately
       const elements = JSON.parse(cc.card.elements || '[]');
       const isSite = cc.card.type === 'Site';
       const bucket = isSite ? 'sites' : 'spells';
@@ -166,6 +172,20 @@
         </div>
       {:else}
         <div class="pool-text">
+          {#if avatarCards().length > 0}
+            <div class="element-group">
+              <h3 class="element-heading element-avatar">Avatars ({avatarCards().length})</h3>
+              <ul class="element-list">
+                {#each avatarCards() as cc}
+                  <li>
+                    <span class="text-qty">{cc.quantity}x</span>
+                    <a href="/cards/{cc.card.slug}" class="text-name">{cc.card.name}</a>
+                    <span class="text-meta">Avatar</span>
+                  </li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
           {#each Object.entries(cardsByElement()) as [element, group]}
             {#if group.spells.length > 0 || group.sites.length > 0}
               <div class="element-group">
@@ -256,6 +276,7 @@
   .element-water { border-color: #4a8fa8; color: #4a8fa8; }
   .element-none { border-color: var(--color-text-muted); color: var(--color-text-muted); }
   .element-multi { border-color: var(--color-accent); color: var(--color-accent); }
+  .element-avatar { border-color: #b07ddb; color: #b07ddb; }
 
   .element-list { list-style: none; padding: 0; margin: 0; }
   .sub-heading { font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; margin: 0.6rem 0 0.3rem; letter-spacing: 0.03em; }
