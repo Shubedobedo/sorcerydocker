@@ -20,7 +20,8 @@ export async function POST({ locals, request, params }) {
     elements: allowedElements = [],
     rarities = {},
     cubeSize = 360,
-    includeAvatars = false
+    includeAvatars = false,
+    includeAllAvatars = false
   } = settings;
 
   // Fetch all cards from the database
@@ -54,7 +55,9 @@ export async function POST({ locals, request, params }) {
 
   // Separate avatars from the main pool
   const avatarCards = allCards.filter((c) => c.type === 'Avatar');
-  allCards = allCards.filter((c) => c.type !== 'Avatar');
+  if (!includeAvatars) {
+    allCards = allCards.filter((c) => c.type !== 'Avatar');
+  }
 
   // Filter by elements — ALL of a card's elements must be in the allowed set
   if (allowedElements.length > 0) {
@@ -68,17 +71,27 @@ export async function POST({ locals, request, params }) {
   // Filter by rarities (only include enabled rarities)
   const enabledRarities = Object.keys(rarities).filter((r) => rarities[r]?.enabled !== false);
   if (enabledRarities.length > 0) {
-    allCards = allCards.filter((c) => enabledRarities.includes(c.rarity));
+    allCards = allCards.filter((c) => c.type === 'Avatar' || enabledRarities.includes(c.rarity));
   }
 
   // Build the cube pool by randomly adding copies up to max per rarity until we hit cubeSize
   const pool = {}; // card.id -> quantity
   const cardCounts = {}; // card.id -> current count
 
+  let totalAdded = 0;
+
+  // If includeAllAvatars, add them all upfront (1 each)
+  if (includeAvatars && includeAllAvatars && avatarCards.length > 0) {
+    for (const avatar of avatarCards) {
+      pool[avatar.id] = 1;
+      cardCounts[avatar.id] = 1;
+      totalAdded += 1;
+    }
+  }
+
   // Shuffle the eligible cards
   const shuffled = [...allCards].sort(() => Math.random() - 0.5);
 
-  let totalAdded = 0;
   let passes = 0;
   const maxPasses = 100; // safety limit
 
@@ -89,7 +102,7 @@ export async function POST({ locals, request, params }) {
       if (totalAdded >= cubeSize) break;
 
       const rarity = card.rarity || 'Ordinary';
-      const maxCopies = rarities[rarity]?.max ?? getDefaultMax(rarity);
+      const maxCopies = card.type === 'Avatar' ? 1 : (rarities[rarity]?.max ?? getDefaultMax(rarity));
       const currentCount = cardCounts[card.id] || 0;
 
       if (currentCount < maxCopies) {
@@ -118,13 +131,6 @@ export async function POST({ locals, request, params }) {
 
   // Clear existing cube cards and insert new pool
   await db.delete(cubeCards).where(eq(cubeCards.cube_id, cube.id));
-
-  // If avatars are included, pick one random avatar and add it
-  if (includeAvatars && avatarCards.length > 0) {
-    const randomAvatar = avatarCards[Math.floor(Math.random() * avatarCards.length)];
-    pool[randomAvatar.id] = 1;
-    totalAdded += 1;
-  }
 
   for (const [cardId, quantity] of Object.entries(pool)) {
     await db.insert(cubeCards).values({

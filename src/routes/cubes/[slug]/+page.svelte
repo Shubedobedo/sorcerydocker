@@ -173,17 +173,20 @@
       {:else}
         <div class="pool-text">
           {#if avatarCards().length > 0}
-            <div class="element-group">
-              <h3 class="element-heading element-avatar">Avatars ({avatarCards().length})</h3>
-              <ul class="element-list">
+            <div class="avatar-bar">
+              <span class="avatar-label">Avatars</span>
+              <div class="avatar-cards">
                 {#each avatarCards() as cc}
-                  <li>
-                    <span class="text-qty">{cc.quantity}x</span>
-                    <a href="/cards/{cc.card.slug}" class="text-name">{cc.card.name}</a>
-                    <span class="text-meta">Avatar</span>
-                  </li>
+                  <a href="/cards/{cc.card.slug}" class="avatar-card">
+                    {#if cc.card.image_url}
+                      <img src={cc.card.image_url} alt={cc.card.name} class="avatar-card-img" />
+                    {:else}
+                      <div class="avatar-card-placeholder"></div>
+                    {/if}
+                    <span class="avatar-card-name">{cc.quantity}x {cc.card.name}</span>
+                  </a>
                 {/each}
-              </ul>
+              </div>
             </div>
           {/if}
           {#each Object.entries(cardsByElement()) as [element, group]}
@@ -277,6 +280,61 @@
   .element-none { border-color: var(--color-text-muted); color: var(--color-text-muted); }
   .element-multi { border-color: var(--color-accent); color: var(--color-accent); }
   .element-avatar { border-color: #b07ddb; color: #b07ddb; }
+
+  .avatar-bar {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+  .avatar-label {
+    writing-mode: vertical-lr;
+    text-orientation: upright;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: -0.15em;
+    color: #b07ddb;
+  }
+  .avatar-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .avatar-card {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem 0.4rem 0.4rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-left: 3px solid #b07ddb;
+    border-radius: var(--radius-md);
+    transition: border-color 0.15s;
+  }
+  .avatar-card:hover {
+    border-color: #b07ddb;
+    border-left-color: #b07ddb;
+    text-decoration: none;
+  }
+  .avatar-card-img {
+    width: 40px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+  }
+  .avatar-card-placeholder {
+    width: 40px;
+    height: 56px;
+    background-color: var(--color-surface);
+    border-radius: var(--radius-sm);
+  }
+  .avatar-card-name {
+    font-size: 0.8rem;
+    color: var(--color-text);
+  }
 
   .element-list { list-style: none; padding: 0; margin: 0; }
   .sub-heading { font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; margin: 0.6rem 0 0.3rem; letter-spacing: 0.03em; }
