@@ -28,7 +28,7 @@ export async function load({ url, locals }) {
     conditions.push(eq(cards.rarity, rarity));
   }
   if (set) {
-    conditions.push(eq(cards.set_id, set));
+    conditions.push(like(cards.set_ids, `%"${set}"%`));
   }
   if (cost) {
     conditions.push(eq(cards.cost, parseInt(cost)));
