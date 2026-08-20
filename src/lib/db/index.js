@@ -86,6 +86,7 @@ sqlite.exec(`
     format TEXT NOT NULL DEFAULT 'standard',
     visibility TEXT NOT NULL DEFAULT 'private',
     tags TEXT,
+    cube_id INTEGER REFERENCES cubes(id) ON DELETE SET NULL,
     slug TEXT UNIQUE,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -190,6 +191,13 @@ sqlite.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 `);
+
+// Migrations for existing databases
+try {
+  sqlite.exec(`ALTER TABLE decks ADD COLUMN cube_id INTEGER REFERENCES cubes(id) ON DELETE SET NULL`);
+} catch (e) {
+  // Column already exists
+}
 
 export const db = drizzle(sqlite, { schema });
 export { sqlite };

@@ -6,11 +6,62 @@
   let searchResults = $state([]);
   let searching = $state(false);
   let addZone = $state('spellbook');
+  let addError = $state('');
   let debounceTimer;
+
+  // Whether this deck is linked to a cube
+  let isCubeDeck = $derived(data.deck.format === 'cube' && data.cubePool);
+
+  // Build a pool quantity map for cube decks: card_id -> max quantity in pool
+  let poolQuantityMap = $derived(() => {
+    if (!data.cubePool) return {};
+    const map = {};
+    for (const entry of data.cubePool) {
+      map[entry.card_id] = entry.quantity;
+    }
+    return map;
+  });
+
+  // Current quantity used per card across all zones
+  let usedQuantityMap = $derived(() => {
+    const map = {};
+    for (const dc of [...data.atlas, ...data.spellbook]) {
+      map[dc.card_id] = (map[dc.card_id] || 0) + dc.quantity;
+    }
+    return map;
+  });
 
   // Reactive counts
   let atlasCount = $derived(data.atlas.reduce((sum, dc) => sum + dc.quantity, 0));
   let spellbookCount = $derived(data.spellbook.reduce((sum, dc) => sum + dc.quantity, 0));
+
+  // Deck size limits — defaults for cube format (can be overridden by cube settings in the future)
+  let deckLimits = $derived(() => {
+    if (!isCubeDeck) return null;
+    const settings = data.deck.cube_settings || {};
+    return {
+      atlas: settings.atlasLimit || 30,
+      spellbook: settings.spellbookLimit || 60
+    };
+  });
+
+  let atlasValid = $derived(() => {
+    const limits = deckLimits();
+    if (!limits) return true;
+    return atlasCount <= limits.atlas;
+  });
+
+  let spellbookValid = $derived(() => {
+    const limits = deckLimits();
+    if (!limits) return true;
+    return spellbookCount <= limits.spellbook;
+  });
+
+  let deckComplete = $derived(() => {
+    const limits = deckLimits();
+    if (!limits) return null;
+    return atlasCount === limits.atlas && spellbookCount === limits.spellbook;
+  });
 
   async function searchCards() {
     clearTimeout(debounceTimer);
@@ -20,15 +71,26 @@
     }
     debounceTimer = setTimeout(async () => {
       searching = true;
-      const res = await fetch(`/api/cards/search?q=${encodeURIComponent(searchQuery)}&limit=10`);
-      if (res.ok) {
-        searchResults = await res.json();
+
+      if (isCubeDeck) {
+        // Filter from cube pool locally
+        const q = searchQuery.toLowerCase();
+        searchResults = data.cubePool
+          .filter((entry) => entry.card.name.toLowerCase().includes(q))
+          .slice(0, 10)
+          .map((entry) => entry.card);
+      } else {
+        const res = await fetch(`/api/cards/search?q=${encodeURIComponent(searchQuery)}&limit=10`);
+        if (res.ok) {
+          searchResults = await res.json();
+        }
       }
       searching = false;
     }, 300);
   }
 
   async function addCard(card) {
+    addError = '';
     // Sites always go to atlas, everything else goes to the selected zone
     const zone = card.type === 'Site' ? 'atlas' : addZone;
     const res = await fetch(`/api/decks/${data.deck.id}/cards`, {
@@ -38,6 +100,10 @@
     });
     if (res.ok) {
       await invalidateAll();
+    } else {
+      const err = await res.json();
+      addError = err.error || 'Failed to add card';
+      setTimeout(() => { addError = ''; }, 4000);
     }
   }
 
@@ -53,6 +119,7 @@
   }
 
   async function changeQuantity(cardId, zone, quantity) {
+    addError = '';
     const res = await fetch(`/api/decks/${data.deck.id}/cards`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -60,6 +127,10 @@
     });
     if (res.ok) {
       await invalidateAll();
+    } else {
+      const err = await res.json();
+      addError = err.error || 'Failed to update quantity';
+      setTimeout(() => { addError = ''; }, 4000);
     }
   }
 
@@ -69,6 +140,13 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ [field]: value })
     });
+  }
+
+  // Helper: get remaining available quantity for a card in the cube pool
+  function remainingForCard(cardId) {
+    const poolQty = poolQuantityMap()[cardId] || 0;
+    const usedQty = usedQuantityMap()[cardId] || 0;
+    return poolQty - usedQty;
   }
 </script>
 
@@ -82,12 +160,18 @@
       <a href="/decks/{data.deck.slug}" class="back-link">&larr; Back to deck</a>
       <h1>{data.deck.name}</h1>
       <span class="deck-format">{data.deck.format}</span>
+      {#if isCubeDeck}
+        <a href="/cubes/{data.cubeSlug}" class="cube-link">Cube: {data.cubeName}</a>
+      {/if}
     </div>
   </div>
 
   <div class="editor-layout">
     <aside class="search-panel">
       <h2>Add Cards</h2>
+      {#if isCubeDeck}
+        <p class="cube-search-note">Searching from cube pool only</p>
+      {/if}
 
       <div class="zone-picker">
         <label>
@@ -101,10 +185,14 @@
       <input
         type="search"
         class="input"
-        placeholder="Search cards..."
+        placeholder={isCubeDeck ? "Search cube pool..." : "Search cards..."}
         bind:value={searchQuery}
         oninput={searchCards}
       />
+
+      {#if addError}
+        <p class="add-error">{addError}</p>
+      {/if}
 
       {#if searchResults.length > 0}
         <ul class="search-results">
@@ -112,7 +200,12 @@
             <li>
               <button class="result-item" onclick={() => addCard(card)}>
                 <span class="result-name">{card.name}</span>
-                <span class="result-meta">{card.type} &middot; {card.set_name}</span>
+                <span class="result-meta">
+                  {card.type} &middot; {card.set_name}
+                  {#if isCubeDeck}
+                    &middot; <span class="pool-avail">{remainingForCard(card.id)}/{poolQuantityMap()[card.id]} avail</span>
+                  {/if}
+                </span>
               </button>
             </li>
           {/each}
@@ -121,8 +214,20 @@
     </aside>
 
     <main class="deck-panel">
+      {#if isCubeDeck}
+        <div class="deck-validation" class:valid={deckComplete()} class:invalid={!atlasValid() || !spellbookValid()}>
+          {#if deckComplete()}
+            <span class="validation-icon">&#10003;</span> Deck complete
+          {:else if !atlasValid() || !spellbookValid()}
+            <span class="validation-icon">&#9888;</span> Deck exceeds limits
+          {:else}
+            <span class="validation-icon">&#8226;</span> {atlasCount + spellbookCount}/{(deckLimits()?.atlas || 30) + (deckLimits()?.spellbook || 60)} cards
+          {/if}
+        </div>
+      {/if}
+
       <section class="zone">
-        <h2>Atlas <span class="zone-count">({atlasCount}/30)</span></h2>
+        <h2>Atlas <span class="zone-count" class:zone-over={isCubeDeck && !atlasValid()} class:zone-complete={isCubeDeck && atlasCount === deckLimits()?.atlas}>({atlasCount}/{deckLimits()?.atlas || 30})</span></h2>
         {#if data.atlas.length > 0}
           <div class="card-list">
             {#each data.atlas as dc}
@@ -149,7 +254,7 @@
       </section>
 
       <section class="zone">
-        <h2>Spellbook <span class="zone-count">({spellbookCount}/60)</span></h2>
+        <h2>Spellbook <span class="zone-count" class:zone-over={isCubeDeck && !spellbookValid()} class:zone-complete={isCubeDeck && spellbookCount === deckLimits()?.spellbook}>({spellbookCount}/{deckLimits()?.spellbook || 60})</span></h2>
         {#if data.spellbook.length > 0}
           <div class="card-list">
             {#each data.spellbook as dc}
@@ -200,6 +305,33 @@
     font-size: 0.75rem;
     color: var(--color-text-muted);
     text-transform: uppercase;
+  }
+
+  .cube-link {
+    display: inline-block;
+    margin-left: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--color-primary);
+  }
+
+  .cube-search-note {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin: 0 0 0.5rem;
+    font-style: italic;
+  }
+
+  .add-error {
+    font-size: 0.8rem;
+    color: var(--color-danger);
+    margin: 0.5rem 0;
+    padding: 0.4rem 0.6rem;
+    background-color: rgba(200, 50, 50, 0.1);
+    border-radius: var(--radius-sm);
+  }
+
+  .pool-avail {
+    color: var(--color-primary);
   }
 
   .editor-layout {
@@ -293,6 +425,40 @@
   .zone-count {
     font-weight: 400;
     color: var(--color-text-muted);
+  }
+
+  .zone-count.zone-over {
+    color: var(--color-danger);
+    font-weight: 600;
+  }
+
+  .zone-count.zone-complete {
+    color: #4caf50;
+    font-weight: 600;
+  }
+
+  .deck-validation {
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+  }
+
+  .deck-validation.valid {
+    border-color: #4caf50;
+    color: #4caf50;
+  }
+
+  .deck-validation.invalid {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+  }
+
+  .validation-icon {
+    margin-right: 0.25rem;
   }
 
   .card-list {

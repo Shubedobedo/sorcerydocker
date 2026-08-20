@@ -5,16 +5,23 @@
   let showCreate = $state(false);
   let newDeckName = $state('');
   let newDeckFormat = $state('standard');
+  let selectedCubeId = $state('');
   let creating = $state(false);
 
   async function createDeck() {
     if (!newDeckName.trim()) return;
+    if (newDeckFormat === 'cube' && !selectedCubeId) return;
     creating = true;
+
+    const body = { name: newDeckName, format: newDeckFormat };
+    if (newDeckFormat === 'cube') {
+      body.cube_id = parseInt(selectedCubeId);
+    }
 
     const res = await fetch('/api/decks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newDeckName, format: newDeckFormat })
+      body: JSON.stringify(body)
     });
 
     if (res.ok) {
@@ -59,8 +66,17 @@
       <select class="select" bind:value={newDeckFormat}>
         <option value="standard">Standard</option>
         <option value="freeform">Freeform</option>
+        <option value="cube">Cube</option>
       </select>
-      <button class="btn btn-primary" onclick={createDeck} disabled={creating}>
+      {#if newDeckFormat === 'cube'}
+        <select class="select" bind:value={selectedCubeId}>
+          <option value="">Select a cube...</option>
+          {#each data.availableCubes as cube}
+            <option value={cube.id}>{cube.name}</option>
+          {/each}
+        </select>
+      {/if}
+      <button class="btn btn-primary" onclick={createDeck} disabled={creating || (newDeckFormat === 'cube' && !selectedCubeId)}>
         {creating ? 'Creating...' : 'Create'}
       </button>
     </div>

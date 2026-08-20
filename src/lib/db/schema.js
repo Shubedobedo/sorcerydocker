@@ -75,9 +75,10 @@ export const decks = sqliteTable('decks', {
   user_id: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   description: text('description'),
-  format: text('format').notNull().default('standard'), // standard, freeform
+  format: text('format').notNull().default('standard'), // standard, freeform, cube
   visibility: text('visibility').notNull().default('private'), // private, public, shared
   tags: text('tags'), // JSON array of element/archetype tags
+  cube_id: integer('cube_id').references(() => cubes.id, { onDelete: 'set null' }), // linked cube for format=cube
   slug: text('slug').unique(),
   created_at: text('created_at').notNull().$defaultFn(() => new Date().toISOString()),
   updated_at: text('updated_at').notNull().$defaultFn(() => new Date().toISOString())

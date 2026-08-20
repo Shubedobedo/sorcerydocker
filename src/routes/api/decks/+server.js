@@ -8,10 +8,14 @@ export async function POST({ locals, request }) {
   const session = await locals.auth();
   if (!session?.user) return json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { name, description, format, tags } = await request.json();
+  const { name, description, format, tags, cube_id } = await request.json();
 
   if (!name?.trim()) {
     return json({ error: 'Name is required' }, { status: 400 });
+  }
+
+  if (format === 'cube' && !cube_id) {
+    return json({ error: 'cube_id is required for cube format' }, { status: 400 });
   }
 
   const slug = name
@@ -25,6 +29,7 @@ export async function POST({ locals, request }) {
     description: description || null,
     format: format || 'standard',
     tags: tags ? JSON.stringify(tags) : null,
+    cube_id: format === 'cube' ? cube_id : null,
     slug
   }).returning();
 

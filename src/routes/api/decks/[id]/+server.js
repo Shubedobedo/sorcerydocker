@@ -15,12 +15,18 @@ export async function PATCH({ locals, request, params }) {
   if (!deck) return json({ error: 'Deck not found' }, { status: 404 });
 
   const updates = await request.json();
-  const allowed = ['name', 'description', 'format', 'visibility', 'tags'];
+  const allowed = ['name', 'description', 'format', 'visibility', 'tags', 'cube_id'];
   const set = {};
 
   for (const key of allowed) {
     if (updates[key] !== undefined) {
-      set[key] = key === 'tags' ? JSON.stringify(updates[key]) : updates[key];
+      if (key === 'tags') {
+        set[key] = JSON.stringify(updates[key]);
+      } else if (key === 'cube_id') {
+        set[key] = updates.format === 'cube' ? updates[key] : null;
+      } else {
+        set[key] = updates[key];
+      }
     }
   }
 
