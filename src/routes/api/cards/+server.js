@@ -21,7 +21,7 @@ export async function GET({ url }) {
   if (q) conditions.push(like(cards.name, `%${q}%`));
   if (type) conditions.push(eq(cards.type, type));
   if (rarity) conditions.push(eq(cards.rarity, rarity));
-  if (set) conditions.push(eq(cards.set_id, set));
+  if (set) conditions.push(like(cards.set_ids, `%"${set}"%`));
   if (cost) conditions.push(eq(cards.cost, parseInt(cost)));
   if (subtype) conditions.push(like(cards.subtype, `%${subtype}%`));
 
