@@ -444,11 +444,11 @@
     min-width: 2px;
   }
 
-  .element-air { background-color: #7c9cbf; }
-  .element-earth { background-color: #8b7d5b; }
-  .element-fire { background-color: #c9583c; }
-  .element-water { background-color: #4a8fa8; }
-  .element-none { background-color: var(--color-text-muted); }
+  .element-bar.element-air { background-color: #7c9cbf; }
+  .element-bar.element-earth { background-color: #8b7d5b; }
+  .element-bar.element-fire { background-color: #c9583c; }
+  .element-bar.element-water { background-color: #4a8fa8; }
+  .element-bar.element-none { background-color: var(--color-text-muted); }
 
   .element-count {
     font-size: 0.7rem;
