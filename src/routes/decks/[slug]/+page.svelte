@@ -4,29 +4,26 @@
   let atlasCount = $derived(data.atlas.reduce((sum, dc) => sum + dc.quantity, 0));
   let spellbookCount = $derived(data.spellbook.reduce((sum, dc) => sum + dc.quantity, 0));
 
-  // Group ALL deck cards by element (like cube page)
+  // Group cards by element
   function groupByElement(cards) {
-    const groups = { Air: { spells: [], sites: [] }, Earth: { spells: [], sites: [] }, Fire: { spells: [], sites: [] }, Water: { spells: [], sites: [] }, Multi: { spells: [], sites: [] }, None: { spells: [], sites: [] } };
+    const groups = { Air: [], Earth: [], Fire: [], Water: [], Multi: [], None: [] };
     for (const dc of cards) {
       const elements = JSON.parse(dc.card.elements || '[]');
-      const isSite = dc.card.type === 'Site';
-      const bucket = isSite ? 'sites' : 'spells';
-
       if (elements.length === 0) {
-        groups.None[bucket].push(dc);
+        groups.None.push(dc);
       } else if (elements.length > 1) {
-        groups.Multi[bucket].push(dc);
+        groups.Multi.push(dc);
       } else {
         const el = elements[0];
-        if (groups[el]) groups[el][bucket].push(dc);
-        else groups.None[bucket].push(dc);
+        if (groups[el]) groups[el].push(dc);
+        else groups.None.push(dc);
       }
     }
     return groups;
   }
 
-  let allCards = $derived([...data.atlas, ...data.spellbook]);
-  let cardsByElement = $derived(groupByElement(allCards));
+  let atlasByElement = $derived(groupByElement(data.atlas));
+  let spellbookByElement = $derived(groupByElement(data.spellbook));
 
   // Deck stats
   let manaCurve = $derived(() => {
@@ -181,39 +178,50 @@
     <p class="description">{data.deck.description}</p>
   {/if}
 
-  <div class="pool-text">
-    {#each Object.entries(cardsByElement) as [element, group]}
-      {#if group.spells.length > 0 || group.sites.length > 0}
-        <div class="element-group">
-          <h3 class="element-heading element-{element.toLowerCase()}">{element} ({group.spells.reduce((s, dc) => s + dc.quantity, 0) + group.sites.reduce((s, dc) => s + dc.quantity, 0)})</h3>
-
-          {#if group.sites.length > 0}
-            <h4 class="sub-heading">Sites ({group.sites.reduce((s, dc) => s + dc.quantity, 0)})</h4>
-            <ul class="element-list">
-              {#each group.sites as dc}
-                <li>
-                  <span class="text-qty">{dc.quantity}x</span>
-                  <a href="/cards/{dc.card.slug}" class="text-name">{dc.card.name}</a>
-                </li>
+  <div class="zones-layout">
+    <section class="zone">
+      <h2>Atlas <span class="zone-count">({atlasCount})</span></h2>
+      {#if data.atlas.length > 0}
+        <div class="zone-cards">
+          {#each Object.entries(atlasByElement) as [element, cards]}
+            {#if cards.length > 0}
+              <h4 class="element-subheading element-{element.toLowerCase()}">{element} ({cards.reduce((s, dc) => s + dc.quantity, 0)})</h4>
+              {#each cards as dc}
+                <div class="view-card-row">
+                  <span class="qty-badge">{dc.quantity}x</span>
+                  <a href="/cards/{dc.card.slug}" class="card-link">{dc.card.name}</a>
+                  <span class="card-type">{dc.card.type || ''}</span>
+                </div>
               {/each}
-            </ul>
-          {/if}
-
-          {#if group.spells.length > 0}
-            <h4 class="sub-heading">Spells ({group.spells.reduce((s, dc) => s + dc.quantity, 0)})</h4>
-            <ul class="element-list">
-              {#each group.spells as dc}
-                <li>
-                  <span class="text-qty">{dc.quantity}x</span>
-                  <a href="/cards/{dc.card.slug}" class="text-name">{dc.card.name}</a>
-                  <span class="text-meta">{dc.card.type}{dc.card.cost !== null ? ` · ${dc.card.cost}` : ''}</span>
-                </li>
-              {/each}
-            </ul>
-          {/if}
+            {/if}
+          {/each}
         </div>
+      {:else}
+        <p class="empty">Empty</p>
       {/if}
-    {/each}
+    </section>
+
+    <section class="zone">
+      <h2>Spellbook <span class="zone-count">({spellbookCount})</span></h2>
+      {#if data.spellbook.length > 0}
+        <div class="zone-cards">
+          {#each Object.entries(spellbookByElement) as [element, cards]}
+            {#if cards.length > 0}
+              <h4 class="element-subheading element-{element.toLowerCase()}">{element} ({cards.reduce((s, dc) => s + dc.quantity, 0)})</h4>
+              {#each cards as dc}
+                <div class="view-card-row">
+                  <span class="qty-badge">{dc.quantity}x</span>
+                  <a href="/cards/{dc.card.slug}" class="card-link">{dc.card.name}</a>
+                  <span class="card-type">{dc.card.type || ''} {dc.card.cost !== null ? `· ${dc.card.cost}` : ''}</span>
+                </div>
+              {/each}
+            {/if}
+          {/each}
+        </div>
+      {:else}
+        <p class="empty">Empty</p>
+      {/if}
+    </section>
   </div>
 </div>
 
@@ -299,27 +307,94 @@
     margin-bottom: 1.5rem;
   }
 
-  .pool-text { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
-  .element-group { }
-  .element-heading { font-size: 0.9rem; margin: 0 0 0.5rem; padding-bottom: 0.4rem; border-bottom: 2px solid var(--color-border); }
-  .element-heading.element-air { border-color: #7c9cbf; color: #7c9cbf; }
-  .element-heading.element-earth { border-color: #8b7d5b; color: #8b7d5b; }
-  .element-heading.element-fire { border-color: #c9583c; color: #c9583c; }
-  .element-heading.element-water { border-color: #4a8fa8; color: #4a8fa8; }
-  .element-heading.element-none { border-color: var(--color-text-muted); color: var(--color-text-muted); }
-  .element-heading.element-multi { border-color: var(--color-accent); color: var(--color-accent); }
+  .zones-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
 
-  .sub-heading { font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; margin: 0.6rem 0 0.3rem; letter-spacing: 0.03em; }
-  .element-list { list-style: none; padding: 0; margin: 0; }
-  .element-list li { display: flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0; font-size: 0.8rem; }
-  .text-qty { color: var(--color-text-muted); min-width: 22px; font-weight: 600; }
-  .text-name { color: var(--color-text); flex: 1; }
-  .text-name:hover { color: var(--color-primary-hover); }
-  .text-meta { color: var(--color-text-muted); font-size: 0.7rem; }
+  .zone {
+    padding: 1rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .zone h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1rem;
+  }
+
+  .zone-count {
+    font-weight: 400;
+    color: var(--color-text-muted);
+  }
+
+  .zone-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .element-subheading {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin: 0.75rem 0 0.25rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid var(--color-border);
+  }
+  .element-subheading:first-child { margin-top: 0; }
+  .element-subheading.element-air { border-color: #7c9cbf; color: #7c9cbf; }
+  .element-subheading.element-earth { border-color: #8b7d5b; color: #8b7d5b; }
+  .element-subheading.element-fire { border-color: #c9583c; color: #c9583c; }
+  .element-subheading.element-water { border-color: #4a8fa8; color: #4a8fa8; }
+  .element-subheading.element-multi { border-color: var(--color-accent); color: var(--color-accent); }
+  .element-subheading.element-none { border-color: var(--color-text-muted); color: var(--color-text-muted); }
+
+  .view-card-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+  }
+
+  .view-card-row:hover {
+    background-color: var(--color-bg-tertiary);
+  }
+
+  .qty-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    min-width: 20px;
+  }
+
+  .card-link {
+    flex: 1;
+    color: var(--color-text);
+  }
+
+  .card-link:hover {
+    color: var(--color-primary-hover);
+  }
+
+  .card-type {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
 
   .empty {
     color: var(--color-text-muted);
     font-size: 0.85rem;
+  }
+
+  @media (max-width: 768px) {
+    .zones-layout {
+      grid-template-columns: 1fr;
+    }
   }
 
   .deck-tools {
