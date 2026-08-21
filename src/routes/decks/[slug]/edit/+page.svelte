@@ -35,6 +35,27 @@
   let atlasCount = $derived(data.atlas.reduce((sum, dc) => sum + dc.quantity, 0));
   let spellbookCount = $derived(data.spellbook.reduce((sum, dc) => sum + dc.quantity, 0));
 
+  // Group cards by element for display
+  function groupByElement(cards) {
+    const groups = { Air: [], Earth: [], Fire: [], Water: [], Multi: [], None: [] };
+    for (const dc of cards) {
+      const elements = JSON.parse(dc.card.elements || '[]');
+      if (elements.length === 0) {
+        groups.None.push(dc);
+      } else if (elements.length > 1) {
+        groups.Multi.push(dc);
+      } else {
+        const el = elements[0];
+        if (groups[el]) groups[el].push(dc);
+        else groups.None.push(dc);
+      }
+    }
+    return groups;
+  }
+
+  let atlasByElement = $derived(groupByElement(data.atlas));
+  let spellbookByElement = $derived(groupByElement(data.spellbook));
+
   // Deck size limits — defaults for cube format (can be overridden by cube settings in the future)
   let deckLimits = $derived(() => {
     if (!isCubeDeck) return null;
@@ -230,22 +251,27 @@
         <h2>Atlas <span class="zone-count" class:zone-over={isCubeDeck && !atlasValid()} class:zone-complete={isCubeDeck && atlasCount === deckLimits()?.atlas}>({atlasCount}/{deckLimits()?.atlas || 30})</span></h2>
         {#if data.atlas.length > 0}
           <div class="card-list">
-            {#each data.atlas as dc}
-              <div class="deck-card-row">
-                {#if dc.card.image_url}
-                  <img src={dc.card.image_url} alt={dc.card.name} class="deck-card-thumb" />
-                {/if}
-                <div class="deck-card-info">
-                  <span class="deck-card-name">{dc.card.name}</span>
-                  <span class="deck-card-meta">{dc.card.type || ''}</span>
-                </div>
-                <div class="deck-card-controls">
-                  <button class="qty-btn" onclick={() => changeQuantity(dc.card_id, 'atlas', dc.quantity - 1)}>-</button>
-                  <span class="qty">{dc.quantity}</span>
-                  <button class="qty-btn" onclick={() => changeQuantity(dc.card_id, 'atlas', dc.quantity + 1)}>+</button>
-                  <button class="remove-btn" onclick={() => removeCard(dc.card_id, 'atlas')}>&times;</button>
-                </div>
-              </div>
+            {#each Object.entries(atlasByElement) as [element, cards]}
+              {#if cards.length > 0}
+                <h4 class="element-subheading element-{element.toLowerCase()}">{element} ({cards.reduce((s, dc) => s + dc.quantity, 0)})</h4>
+                {#each cards as dc}
+                  <div class="deck-card-row">
+                    {#if dc.card.image_url}
+                      <img src={dc.card.image_url} alt={dc.card.name} class="deck-card-thumb" />
+                    {/if}
+                    <div class="deck-card-info">
+                      <span class="deck-card-name">{dc.card.name}</span>
+                      <span class="deck-card-meta">{dc.card.type || ''}</span>
+                    </div>
+                    <div class="deck-card-controls">
+                      <button class="qty-btn" onclick={() => changeQuantity(dc.card_id, 'atlas', dc.quantity - 1)}>-</button>
+                      <span class="qty">{dc.quantity}</span>
+                      <button class="qty-btn" onclick={() => changeQuantity(dc.card_id, 'atlas', dc.quantity + 1)}>+</button>
+                      <button class="remove-btn" onclick={() => removeCard(dc.card_id, 'atlas')}>&times;</button>
+                    </div>
+                  </div>
+                {/each}
+              {/if}
             {/each}
           </div>
         {:else}
@@ -257,22 +283,27 @@
         <h2>Spellbook <span class="zone-count" class:zone-over={isCubeDeck && !spellbookValid()} class:zone-complete={isCubeDeck && spellbookCount === deckLimits()?.spellbook}>({spellbookCount}/{deckLimits()?.spellbook || 60})</span></h2>
         {#if data.spellbook.length > 0}
           <div class="card-list">
-            {#each data.spellbook as dc}
-              <div class="deck-card-row">
-                {#if dc.card.image_url}
-                  <img src={dc.card.image_url} alt={dc.card.name} class="deck-card-thumb" />
-                {/if}
-                <div class="deck-card-info">
-                  <span class="deck-card-name">{dc.card.name}</span>
-                  <span class="deck-card-meta">{dc.card.type || ''} {dc.card.cost !== null ? `· ${dc.card.cost}` : ''}</span>
-                </div>
-                <div class="deck-card-controls">
-                  <button class="qty-btn" onclick={() => changeQuantity(dc.card_id, 'spellbook', dc.quantity - 1)}>-</button>
-                  <span class="qty">{dc.quantity}</span>
-                  <button class="qty-btn" onclick={() => changeQuantity(dc.card_id, 'spellbook', dc.quantity + 1)}>+</button>
-                  <button class="remove-btn" onclick={() => removeCard(dc.card_id, 'spellbook')}>&times;</button>
-                </div>
-              </div>
+            {#each Object.entries(spellbookByElement) as [element, cards]}
+              {#if cards.length > 0}
+                <h4 class="element-subheading element-{element.toLowerCase()}">{element} ({cards.reduce((s, dc) => s + dc.quantity, 0)})</h4>
+                {#each cards as dc}
+                  <div class="deck-card-row">
+                    {#if dc.card.image_url}
+                      <img src={dc.card.image_url} alt={dc.card.name} class="deck-card-thumb" />
+                    {/if}
+                    <div class="deck-card-info">
+                      <span class="deck-card-name">{dc.card.name}</span>
+                      <span class="deck-card-meta">{dc.card.type || ''} {dc.card.cost !== null ? `· ${dc.card.cost}` : ''}</span>
+                    </div>
+                    <div class="deck-card-controls">
+                      <button class="qty-btn" onclick={() => changeQuantity(dc.card_id, 'spellbook', dc.quantity - 1)}>-</button>
+                      <span class="qty">{dc.quantity}</span>
+                      <button class="qty-btn" onclick={() => changeQuantity(dc.card_id, 'spellbook', dc.quantity + 1)}>+</button>
+                      <button class="remove-btn" onclick={() => removeCard(dc.card_id, 'spellbook')}>&times;</button>
+                    </div>
+                  </div>
+                {/each}
+              {/if}
             {/each}
           </div>
         {:else}
@@ -466,6 +497,22 @@
     flex-direction: column;
     gap: 0.25rem;
   }
+
+  .element-subheading {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin: 0.75rem 0 0.25rem;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid var(--color-border);
+  }
+  .element-subheading:first-child { margin-top: 0; }
+  .element-subheading.element-air { border-color: #7c9cbf; color: #7c9cbf; }
+  .element-subheading.element-earth { border-color: #8b7d5b; color: #8b7d5b; }
+  .element-subheading.element-fire { border-color: #c9583c; color: #c9583c; }
+  .element-subheading.element-water { border-color: #4a8fa8; color: #4a8fa8; }
+  .element-subheading.element-multi { border-color: var(--color-accent); color: var(--color-accent); }
+  .element-subheading.element-none { border-color: var(--color-text-muted); color: var(--color-text-muted); }
 
   .deck-card-row {
     display: flex;
