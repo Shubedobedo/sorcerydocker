@@ -54,7 +54,7 @@
   function applyFilters() {
     const params = buildParams(1);
     params.delete('page');
-    goto(`/cards?${params.toString()}`);
+    goto(`/cards?${params.toString()}`, { invalidateAll: true });
   }
 
   function clearFilters() {
@@ -64,6 +64,8 @@
 
   // Reset card list when server data changes (filters applied via navigation)
   $effect(() => {
+    // Use $page.url.search as the trigger to ensure we always reset on URL change
+    const _url = $page.url.search;
     cardList = [...data.cards];
     filters = { ...data.filters };
     currentPage = 1;
