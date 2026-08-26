@@ -1,6 +1,7 @@
 <script>
-  import { goto } from '$app/navigation';
+  import { goto, replaceState } from '$app/navigation';
   import { page } from '$app/stores';
+  import { onMount } from 'svelte';
 
   let { data } = $props();
 
@@ -15,13 +16,47 @@
   let exportSet = $state('');
   let importResult = $state('');
 
-  // Filters
+  // Filters — initialize from URL params
   let filters = $state({ type: '', element: '', rarity: '', set: '', cost: '', minQty: '', maxQty: '', q: '', completion: '' });
 
   const types = ['Minion', 'Magic', 'Aura', 'Artifact', 'Site', 'Avatar'];
   const elements = ['Air', 'Earth', 'Fire', 'Water'];
   const rarities = ['Ordinary', 'Exceptional', 'Elite', 'Unique'];
   const maxCopies = { Ordinary: 4, Exceptional: 3, Elite: 2, Unique: 1 };
+
+  onMount(() => {
+    const params = $page.url.searchParams;
+    filters = {
+      type: params.get('type') || '',
+      element: params.get('element') || '',
+      rarity: params.get('rarity') || '',
+      set: params.get('set') || '',
+      cost: params.get('cost') || '',
+      minQty: params.get('minQty') || '',
+      maxQty: params.get('maxQty') || '',
+      q: params.get('q') || '',
+      completion: params.get('completion') || ''
+    };
+  });
+
+  // Sync filters to URL without navigation
+  $effect(() => {
+    // Read all filter values to track them
+    const { type, element, rarity, set, cost, minQty, maxQty, q, completion } = filters;
+    const params = new URLSearchParams();
+    if (type) params.set('type', type);
+    if (element) params.set('element', element);
+    if (rarity) params.set('rarity', rarity);
+    if (set) params.set('set', set);
+    if (cost) params.set('cost', cost);
+    if (minQty) params.set('minQty', minQty);
+    if (maxQty) params.set('maxQty', maxQty);
+    if (q) params.set('q', q);
+    if (completion) params.set('completion', completion);
+
+    const newUrl = params.toString() ? `/collection?${params.toString()}` : '/collection';
+    replaceState(newUrl, {});
+  });
 
   let filteredCollection = $derived(() => {
     let result = collection;
