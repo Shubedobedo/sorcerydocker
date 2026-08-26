@@ -59,7 +59,7 @@
     if (filters.completion === 'missing') {
       // Include cards not in collection (quantity 0) plus owned cards below max
       const ownedMissing = result.filter((item) => {
-        const max = maxCopies[item.card.rarity] || 4;
+        const max = item.card.type === 'Avatar' ? 1 : (maxCopies[item.card.rarity] || 4);
         return item.quantity < max;
       });
       // Also include cards not in collection at all
@@ -90,7 +90,7 @@
       result = [...ownedMissing, ...notOwned].sort((a, b) => a.card.name.localeCompare(b.card.name));
     } else if (filters.completion === 'extra') {
       result = result.filter((item) => {
-        const max = maxCopies[item.card.rarity] || 4;
+        const max = item.card.type === 'Avatar' ? 1 : (maxCopies[item.card.rarity] || 4);
         const tradeQty = data.tradeMap?.[item.card_id] || 0;
         return (item.quantity - tradeQty) > max;
       });
