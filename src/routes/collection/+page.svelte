@@ -6,6 +6,7 @@
   let { data } = $props();
 
   let collection = $state([...data.collection]);
+  let missingCards = $state([...(data.missingCards || [])]);
   let totalCards = $derived(collection.reduce((sum, item) => sum + item.quantity, 0));
   let uniqueCards = $derived(collection.length);
 
@@ -98,7 +99,7 @@
         return item.quantity < max;
       });
       // Also include cards not in collection at all
-      let notOwned = data.missingCards || [];
+      let notOwned = missingCards || [];
       // Apply same filters to notOwned
       if (filters.q) {
         const q = filters.q.toLowerCase();
@@ -163,6 +164,7 @@
 
   $effect(() => {
     collection = [...data.collection];
+    missingCards = [...(data.missingCards || [])];
   });
 
   async function updateQuantity(item, newQty) {
@@ -178,7 +180,16 @@
     });
     if (res.ok) {
       if (newQty <= 0) {
+        // Move from collection back to missingCards
+        const removed = collection.find((c) => c.id === item.id);
         collection = collection.filter((c) => c.id !== item.id);
+        if (removed) {
+          missingCards = [...missingCards, { ...removed, id: `missing-${removed.card_id}`, quantity: 0 }].sort((a, b) => a.card.name.localeCompare(b.card.name));
+        }
+      } else if (item.quantity === 0 || String(item.id).startsWith('missing-')) {
+        // Card was in missingCards, move to collection
+        missingCards = missingCards.filter((c) => c.card_id !== item.card_id);
+        collection = [...collection, { ...item, id: item.card_id, quantity: newQty }].sort((a, b) => a.card.name.localeCompare(b.card.name));
       } else {
         collection = collection.map((c) => c.id === item.id ? { ...c, quantity: newQty } : c);
       }
