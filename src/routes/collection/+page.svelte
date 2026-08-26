@@ -1,13 +1,69 @@
 <script>
+  import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
+
   let { data } = $props();
 
   let collection = $state([...data.collection]);
   let totalCards = $derived(collection.reduce((sum, item) => sum + item.quantity, 0));
   let uniqueCards = $derived(collection.length);
 
+  // Slide panel
+  let showCsvPanel = $state(false);
+
   // CSV tools
   let exportSet = $state('');
   let importResult = $state('');
+
+  // Filters
+  let filters = $state({ type: '', element: '', rarity: '', set: '', cost: '', minQty: '', maxQty: '', q: '' });
+
+  const types = ['Minion', 'Magic', 'Aura', 'Artifact', 'Site', 'Avatar'];
+  const elements = ['Air', 'Earth', 'Fire', 'Water'];
+  const rarities = ['Ordinary', 'Exceptional', 'Elite', 'Unique'];
+
+  let filteredCollection = $derived(() => {
+    let result = collection;
+
+    if (filters.q) {
+      const q = filters.q.toLowerCase();
+      result = result.filter((item) => item.card.name.toLowerCase().includes(q));
+    }
+    if (filters.type) {
+      result = result.filter((item) => item.card.type === filters.type);
+    }
+    if (filters.element) {
+      result = result.filter((item) => {
+        const elems = JSON.parse(item.card.elements || '[]');
+        return elems.includes(filters.element);
+      });
+    }
+    if (filters.rarity) {
+      result = result.filter((item) => item.card.rarity === filters.rarity);
+    }
+    if (filters.set) {
+      result = result.filter((item) => item.set_id === filters.set || item.card.set_id === filters.set);
+    }
+    if (filters.cost) {
+      result = result.filter((item) => item.card.cost === parseInt(filters.cost));
+    }
+    if (filters.minQty) {
+      const min = parseInt(filters.minQty);
+      result = result.filter((item) => item.quantity >= min);
+    }
+    if (filters.maxQty) {
+      const max = parseInt(filters.maxQty);
+      result = result.filter((item) => item.quantity <= max);
+    }
+
+    return result;
+  });
+
+  let filteredTotal = $derived(filteredCollection().reduce((sum, item) => sum + item.quantity, 0));
+
+  function clearFilters() {
+    filters = { type: '', element: '', rarity: '', set: '', cost: '', minQty: '', maxQty: '', q: '' };
+  }
 
   async function handleFileUpload(e) {
     const file = e.target.files?.[0];
@@ -105,6 +161,25 @@
   async function markForTrade(item) {
     openTradeModal(item);
   }
+
+  // Share URL
+  function shareCollection() {
+    const params = new URLSearchParams();
+    if (filters.type) params.set('type', filters.type);
+    if (filters.element) params.set('element', filters.element);
+    if (filters.rarity) params.set('rarity', filters.rarity);
+    if (filters.set) params.set('set', filters.set);
+    if (filters.cost) params.set('cost', filters.cost);
+    if (filters.minQty) params.set('minQty', filters.minQty);
+    if (filters.maxQty) params.set('maxQty', filters.maxQty);
+    if (filters.q) params.set('q', filters.q);
+
+    const base = `${window.location.origin}/collection/${data.session.user.id}`;
+    const url = params.toString() ? `${base}?${params.toString()}` : base;
+
+    navigator.clipboard.writeText(url);
+    showToast('Share link copied to clipboard');
+  }
 </script>
 
 <svelte:head>
@@ -112,37 +187,71 @@
 </svelte:head>
 
 <div class="container collection-page">
-  <h1>My Collection</h1>
-
-  <div class="collection-stats">
-    <span>{uniqueCards} unique cards</span>
-    <span>&middot;</span>
-    <span>{totalCards} total</span>
+  <div class="collection-header">
+    <div>
+      <h1>My Collection</h1>
+      <div class="collection-stats">
+        <span>{uniqueCards} unique cards</span>
+        <span>&middot;</span>
+        <span>{totalCards} total</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick={shareCollection}>Share</button>
+      <button class="btn btn-secondary" onclick={() => { showCsvPanel = true; }}>Import / Export</button>
+    </div>
   </div>
 
-  <div class="csv-tools">
-    <div class="csv-export">
-      <select class="select" bind:value={exportSet}>
-        <option value="">All Cards</option>
+  <div class="filters-bar">
+    <div class="filter-row">
+      <input
+        type="search"
+        class="input search-input"
+        placeholder="Search by name..."
+        bind:value={filters.q}
+      />
+      <select class="select" bind:value={filters.type}>
+        <option value="">All Types</option>
+        {#each types as t}
+          <option value={t}>{t}</option>
+        {/each}
+      </select>
+      <select class="select" bind:value={filters.element}>
+        <option value="">All Elements</option>
+        {#each elements as el}
+          <option value={el}>{el}</option>
+        {/each}
+      </select>
+      <select class="select" bind:value={filters.rarity}>
+        <option value="">All Rarities</option>
+        {#each rarities as r}
+          <option value={r}>{r}</option>
+        {/each}
+      </select>
+    </div>
+    <div class="filter-row">
+      <select class="select" bind:value={filters.set}>
+        <option value="">All Sets</option>
         {#each data.allSets as s}
           <option value={s.id}>{s.name}</option>
         {/each}
       </select>
-      <a href="/api/collection/export?set={exportSet}" class="btn btn-secondary" download>Download CSV</a>
+      <select class="select" bind:value={filters.cost}>
+        <option value="">Any Cost</option>
+        {#each Array.from({ length: 11 }, (_, i) => i) as c}
+          <option value={c.toString()}>{c}</option>
+        {/each}
+      </select>
+      <input type="number" class="input qty-filter" placeholder="Min qty" min="1" bind:value={filters.minQty} />
+      <input type="number" class="input qty-filter" placeholder="Max qty" min="1" bind:value={filters.maxQty} />
+      <button class="btn btn-secondary" onclick={clearFilters}>Clear</button>
     </div>
-    <div class="csv-import">
-      <input type="file" accept=".csv" class="file-input" id="csv-upload"
-        onchange={handleFileUpload} />
-      <label for="csv-upload" class="btn btn-secondary">Upload CSV</label>
-    </div>
-    {#if importResult}
-      <span class="import-result">{importResult}</span>
-    {/if}
+    <p class="results-count">Showing {filteredCollection().length} cards ({filteredTotal} total)</p>
   </div>
 
-  {#if collection.length > 0}
+  {#if filteredCollection().length > 0}
     <div class="collection-grid">
-      {#each collection as item (item.id)}
+      {#each filteredCollection() as item (item.id)}
         <div class="collection-card">
           <a href="/cards/{item.card.slug}" class="card-image-link">
             {#if item.card.image_url}
@@ -168,9 +277,43 @@
       {/each}
     </div>
   {:else}
-    <p class="empty">Your collection is empty. Browse the <a href="/cards">card database</a> to add cards.</p>
+    <p class="empty">No cards match your filters. {#if collection.length === 0}Browse the <a href="/cards">card database</a> to add cards.{/if}</p>
   {/if}
 </div>
+
+<!-- CSV Slide Panel -->
+{#if showCsvPanel}
+  <div class="panel-overlay" onclick={() => { showCsvPanel = false; }}></div>
+  <aside class="slide-panel">
+    <div class="panel-header">
+      <h2>Import / Export</h2>
+      <button class="panel-close" onclick={() => { showCsvPanel = false; }}>&times;</button>
+    </div>
+
+    <div class="panel-section">
+      <h3>Export CSV</h3>
+      <p class="panel-hint">Download your collection as a CSV file.</p>
+      <select class="select" bind:value={exportSet}>
+        <option value="">All Cards</option>
+        {#each data.allSets as s}
+          <option value={s.id}>{s.name}</option>
+        {/each}
+      </select>
+      <a href="/api/collection/export?set={exportSet}" class="btn btn-primary" download>Download CSV</a>
+    </div>
+
+    <div class="panel-section">
+      <h3>Import CSV</h3>
+      <p class="panel-hint">Upload a CSV file with card_id and quantity columns.</p>
+      <input type="file" accept=".csv" class="file-input" id="csv-upload"
+        onchange={handleFileUpload} />
+      <label for="csv-upload" class="btn btn-primary">Upload CSV</label>
+      {#if importResult}
+        <span class="import-result">{importResult}</span>
+      {/if}
+    </div>
+  </aside>
+{/if}
 
 {#if tradeModalItem}
   <div class="modal-overlay" onclick={() => { tradeModalItem = null; }}>
@@ -207,35 +350,134 @@
     margin: 0 0 0.5rem;
   }
 
+  .collection-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .collection-header h1 { margin: 0; }
+
+  .header-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
   .collection-stats {
     display: flex;
     gap: 0.5rem;
     color: var(--color-text-muted);
     font-size: 0.875rem;
-    margin-bottom: 1rem;
+    margin-top: 0.25rem;
   }
 
-  .csv-tools {
+  .filters-bar {
     display: flex;
-    align-items: center;
-    gap: 1rem;
+    flex-direction: column;
+    gap: 0.75rem;
     margin-bottom: 1.5rem;
-    padding: 0.75rem 1rem;
+    padding: 1rem;
     background-color: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    flex-wrap: wrap;
+    border-radius: var(--radius-lg);
   }
 
-  .csv-export {
+  .filter-row {
     display: flex;
     gap: 0.5rem;
+    flex-wrap: wrap;
     align-items: center;
   }
 
-  .csv-import {
+  .search-input {
+    flex: 1;
+    min-width: 180px;
+  }
+
+  .qty-filter {
+    width: 90px;
+  }
+
+  .results-count {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  /* Slide panel */
+  .panel-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 150;
+  }
+
+  .slide-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 340px;
+    max-width: 90vw;
+    height: 100vh;
+    background-color: var(--color-bg-secondary);
+    border-left: 1px solid var(--color-border);
+    z-index: 151;
+    padding: 1.5rem;
+    overflow-y: auto;
+    animation: slide-in 0.2s ease;
+  }
+
+  @keyframes slide-in {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+
+  .panel-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .panel-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+
+  .panel-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--color-text-muted);
+    cursor: pointer;
+  }
+
+  .panel-close:hover {
+    color: var(--color-text);
+  }
+
+  .panel-section {
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .panel-section h3 {
+    margin: 0;
+    font-size: 0.95rem;
+  }
+
+  .panel-hint {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin: 0;
   }
 
   .file-input {
