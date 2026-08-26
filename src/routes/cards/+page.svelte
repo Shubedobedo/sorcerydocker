@@ -5,27 +5,60 @@
 
   let { data } = $props();
 
-  let filters = $state({ ...data.filters });
+  let filters = $state({
+    q: data.filters.q || '',
+    types: data.filters.type ? data.filters.type.split(',') : [],
+    elements: data.filters.element ? data.filters.element.split(',') : [],
+    rarities: data.filters.rarity ? data.filters.rarity.split(',') : [],
+    sets: data.filters.set ? data.filters.set.split(',') : [],
+    cost: data.filters.cost || '',
+    subtype: data.filters.subtype || ''
+  });
   let cardList = $state([...data.cards]);
   let currentPage = $state(1);
   let loading = $state(false);
   let hasMore = $state(data.cards.length === 24);
   let sentinel = $state(null);
 
-  const types = ['Minion', 'Magic', 'Aura', 'Artifact', 'Site', 'Avatar'];
-  const elements = ['Air', 'Earth', 'Fire', 'Water'];
-  const rarities = ['Ordinary', 'Exceptional', 'Elite', 'Unique'];
+  const typeOptions = ['Minion', 'Magic', 'Aura', 'Artifact', 'Site', 'Avatar'];
+  const elementOptions = ['Air', 'Earth', 'Fire', 'Water'];
+  const rarityOptions = ['Ordinary', 'Exceptional', 'Elite', 'Unique'];
 
-  function buildParams(page) {
+  // Dropdown state
+  let openDropdown = $state('');
+
+  function toggleDropdown(name) {
+    openDropdown = openDropdown === name ? '' : name;
+  }
+
+  function toggleFilter(field, value) {
+    const arr = filters[field];
+    if (arr.includes(value)) {
+      filters[field] = arr.filter((v) => v !== value);
+    } else {
+      filters[field] = [...arr, value];
+    }
+    filters = { ...filters };
+    applyFilters();
+  }
+
+  function dropdownLabel(field, allLabel) {
+    const selected = filters[field];
+    if (!selected || selected.length === 0) return allLabel;
+    if (selected.length === 1) return selected[0];
+    return `${selected.length} selected`;
+  }
+
+  function buildParams(pg) {
     const params = new URLSearchParams();
     if (filters.q) params.set('q', filters.q);
-    if (filters.type) params.set('type', filters.type);
-    if (filters.element) params.set('element', filters.element);
-    if (filters.rarity) params.set('rarity', filters.rarity);
-    if (filters.set) params.set('set', filters.set);
+    if (filters.types.length) params.set('type', filters.types.join(','));
+    if (filters.elements.length) params.set('element', filters.elements.join(','));
+    if (filters.rarities.length) params.set('rarity', filters.rarities.join(','));
+    if (filters.sets.length) params.set('set', filters.sets.join(','));
     if (filters.cost) params.set('cost', filters.cost);
     if (filters.subtype) params.set('subtype', filters.subtype);
-    params.set('page', page.toString());
+    params.set('page', pg.toString());
     return params;
   }
 
@@ -58,16 +91,23 @@
   }
 
   function clearFilters() {
-    filters = { q: '', type: '', element: '', rarity: '', set: '', cost: '', subtype: '' };
-    goto('/cards');
+    filters = { q: '', types: [], elements: [], rarities: [], sets: [], cost: '', subtype: '' };
+    goto('/cards', { invalidateAll: true });
   }
 
   // Reset card list when server data changes (filters applied via navigation)
   $effect(() => {
-    // Use $page.url.search as the trigger to ensure we always reset on URL change
     const _url = $page.url.search;
     cardList = [...data.cards];
-    filters = { ...data.filters };
+    filters = {
+      q: data.filters.q || '',
+      types: data.filters.type ? data.filters.type.split(',') : [],
+      elements: data.filters.element ? data.filters.element.split(',') : [],
+      rarities: data.filters.rarity ? data.filters.rarity.split(',') : [],
+      sets: data.filters.set ? data.filters.set.split(',') : [],
+      cost: data.filters.cost || '',
+      subtype: data.filters.subtype || ''
+    };
     currentPage = 1;
     hasMore = data.cards.length === 24;
   });
@@ -86,6 +126,13 @@
       if (sentinel) {
         observer.observe(sentinel);
         return () => observer.unobserve(sentinel);
+      }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.multi-select')) {
+        openDropdown = '';
       }
     });
 
@@ -114,33 +161,73 @@
     </div>
 
     <div class="filter-row">
-      <select class="select" bind:value={filters.type} onchange={applyFilters}>
-        <option value="">All Types</option>
-        {#each types as t}
-          <option value={t}>{t}</option>
-        {/each}
-      </select>
+      <div class="multi-select">
+        <button class="multi-select-trigger" onclick={() => toggleDropdown('types')}>
+          {dropdownLabel('types', 'All Types')}
+          <span class="caret">&#9662;</span>
+        </button>
+        {#if openDropdown === 'types'}
+          <div class="multi-select-dropdown">
+            {#each typeOptions as t}
+              <label class="checkbox-item">
+                <input type="checkbox" checked={filters.types.includes(t)} onchange={() => toggleFilter('types', t)} />
+                <span>{t}</span>
+              </label>
+            {/each}
+          </div>
+        {/if}
+      </div>
 
-      <select class="select" bind:value={filters.element} onchange={applyFilters}>
-        <option value="">All Elements</option>
-        {#each elements as el}
-          <option value={el}>{el}</option>
-        {/each}
-      </select>
+      <div class="multi-select">
+        <button class="multi-select-trigger" onclick={() => toggleDropdown('elements')}>
+          {dropdownLabel('elements', 'All Elements')}
+          <span class="caret">&#9662;</span>
+        </button>
+        {#if openDropdown === 'elements'}
+          <div class="multi-select-dropdown">
+            {#each elementOptions as el}
+              <label class="checkbox-item">
+                <input type="checkbox" checked={filters.elements.includes(el)} onchange={() => toggleFilter('elements', el)} />
+                <span>{el}</span>
+              </label>
+            {/each}
+          </div>
+        {/if}
+      </div>
 
-      <select class="select" bind:value={filters.rarity} onchange={applyFilters}>
-        <option value="">All Rarities</option>
-        {#each rarities as r}
-          <option value={r}>{r}</option>
-        {/each}
-      </select>
+      <div class="multi-select">
+        <button class="multi-select-trigger" onclick={() => toggleDropdown('rarities')}>
+          {dropdownLabel('rarities', 'All Rarities')}
+          <span class="caret">&#9662;</span>
+        </button>
+        {#if openDropdown === 'rarities'}
+          <div class="multi-select-dropdown">
+            {#each rarityOptions as r}
+              <label class="checkbox-item">
+                <input type="checkbox" checked={filters.rarities.includes(r)} onchange={() => toggleFilter('rarities', r)} />
+                <span>{r}</span>
+              </label>
+            {/each}
+          </div>
+        {/if}
+      </div>
 
-      <select class="select" bind:value={filters.set} onchange={applyFilters}>
-        <option value="">All Sets</option>
-        {#each data.allSets as s}
-          <option value={s.id}>{s.name}</option>
-        {/each}
-      </select>
+      <div class="multi-select">
+        <button class="multi-select-trigger" onclick={() => toggleDropdown('sets')}>
+          {dropdownLabel('sets', 'All Sets')}
+          <span class="caret">&#9662;</span>
+        </button>
+        {#if openDropdown === 'sets'}
+          <div class="multi-select-dropdown">
+            {#each data.allSets as s}
+              <label class="checkbox-item">
+                <input type="checkbox" checked={filters.sets.includes(s.id)} onchange={() => toggleFilter('sets', s.id)} />
+                <span>{s.name}</span>
+              </label>
+            {/each}
+          </div>
+        {/if}
+      </div>
 
       <select class="select" bind:value={filters.cost} onchange={applyFilters}>
         <option value="">Any Cost</option>
@@ -233,6 +320,69 @@
 
   .select {
     min-width: 130px;
+  }
+
+  /* Multi-select checkbox dropdown */
+  .multi-select {
+    position: relative;
+  }
+
+  .multi-select-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+    min-width: 120px;
+  }
+
+  .multi-select-trigger:hover {
+    border-color: var(--color-primary);
+  }
+
+  .caret {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    margin-left: auto;
+  }
+
+  .multi-select-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 100%;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 0.25rem 0;
+  }
+
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .checkbox-item:hover {
+    background-color: var(--color-bg-tertiary);
+  }
+
+  .checkbox-item input[type="checkbox"] {
+    accent-color: var(--color-primary);
   }
 
   .results-count {

@@ -18,40 +18,66 @@
   let importResult = $state('');
 
   // Filters — initialize from URL params
-  let filters = $state({ type: '', element: '', rarity: '', set: '', cost: '', minQty: '', maxQty: '', q: '', completion: '' });
+  let filters = $state({ types: [], elements: [], rarities: [], sets: [], cost: '', q: '', completion: '' });
 
-  const types = ['Minion', 'Magic', 'Aura', 'Artifact', 'Site', 'Avatar'];
-  const elements = ['Air', 'Earth', 'Fire', 'Water'];
-  const rarities = ['Ordinary', 'Exceptional', 'Elite', 'Unique'];
+  const typeOptions = ['Minion', 'Magic', 'Aura', 'Artifact', 'Site', 'Avatar'];
+  const elementOptions = ['Air', 'Earth', 'Fire', 'Water'];
+  const rarityOptions = ['Ordinary', 'Exceptional', 'Elite', 'Unique'];
   const maxCopies = { Ordinary: 4, Exceptional: 3, Elite: 2, Unique: 1 };
+
+  // Dropdown open state
+  let openDropdown = $state('');
+
+  function toggleDropdown(name) {
+    openDropdown = openDropdown === name ? '' : name;
+  }
+
+  function toggleFilter(field, value) {
+    const arr = filters[field];
+    if (arr.includes(value)) {
+      filters[field] = arr.filter((v) => v !== value);
+    } else {
+      filters[field] = [...arr, value];
+    }
+    filters = { ...filters }; // trigger reactivity
+  }
+
+  function dropdownLabel(field, allLabel, options) {
+    const selected = filters[field];
+    if (!selected || selected.length === 0) return allLabel;
+    if (selected.length === 1) return selected[0];
+    return `${selected.length} selected`;
+  }
 
   onMount(() => {
     const params = $page.url.searchParams;
     filters = {
-      type: params.get('type') || '',
-      element: params.get('element') || '',
-      rarity: params.get('rarity') || '',
-      set: params.get('set') || '',
+      types: params.get('type') ? params.get('type').split(',') : [],
+      elements: params.get('element') ? params.get('element').split(',') : [],
+      rarities: params.get('rarity') ? params.get('rarity').split(',') : [],
+      sets: params.get('set') ? params.get('set').split(',') : [],
       cost: params.get('cost') || '',
-      minQty: params.get('minQty') || '',
-      maxQty: params.get('maxQty') || '',
       q: params.get('q') || '',
       completion: params.get('completion') || ''
     };
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.multi-select')) {
+        openDropdown = '';
+      }
+    });
   });
 
   // Sync filters to URL without navigation
   $effect(() => {
-    // Read all filter values to track them
-    const { type, element, rarity, set, cost, minQty, maxQty, q, completion } = filters;
+    const { types, elements, rarities, sets, cost, q, completion } = filters;
     const params = new URLSearchParams();
-    if (type) params.set('type', type);
-    if (element) params.set('element', element);
-    if (rarity) params.set('rarity', rarity);
-    if (set) params.set('set', set);
+    if (types.length) params.set('type', types.join(','));
+    if (elements.length) params.set('element', elements.join(','));
+    if (rarities.length) params.set('rarity', rarities.join(','));
+    if (sets.length) params.set('set', sets.join(','));
     if (cost) params.set('cost', cost);
-    if (minQty) params.set('minQty', minQty);
-    if (maxQty) params.set('maxQty', maxQty);
     if (q) params.set('q', q);
     if (completion) params.set('completion', completion);
 
@@ -66,31 +92,23 @@
       const q = filters.q.toLowerCase();
       result = result.filter((item) => item.card.name.toLowerCase().includes(q));
     }
-    if (filters.type) {
-      result = result.filter((item) => item.card.type === filters.type);
+    if (filters.types.length) {
+      result = result.filter((item) => filters.types.includes(item.card.type));
     }
-    if (filters.element) {
+    if (filters.elements.length) {
       result = result.filter((item) => {
         const elems = JSON.parse(item.card.elements || '[]');
-        return elems.includes(filters.element);
+        return filters.elements.some((el) => elems.includes(el));
       });
     }
-    if (filters.rarity) {
-      result = result.filter((item) => item.card.rarity === filters.rarity);
+    if (filters.rarities.length) {
+      result = result.filter((item) => filters.rarities.includes(item.card.rarity));
     }
-    if (filters.set) {
-      result = result.filter((item) => item.set_id === filters.set || item.card.set_id === filters.set);
+    if (filters.sets.length) {
+      result = result.filter((item) => filters.sets.includes(item.set_id) || filters.sets.includes(item.card.set_id));
     }
     if (filters.cost) {
       result = result.filter((item) => item.card.cost === parseInt(filters.cost));
-    }
-    if (filters.minQty) {
-      const min = parseInt(filters.minQty);
-      result = result.filter((item) => item.quantity >= min);
-    }
-    if (filters.maxQty) {
-      const max = parseInt(filters.maxQty);
-      result = result.filter((item) => item.quantity <= max);
     }
     if (filters.completion === 'missing') {
       // Include cards not in collection (quantity 0) plus owned cards below max
@@ -105,20 +123,20 @@
         const q = filters.q.toLowerCase();
         notOwned = notOwned.filter((item) => item.card.name.toLowerCase().includes(q));
       }
-      if (filters.type) {
-        notOwned = notOwned.filter((item) => item.card.type === filters.type);
+      if (filters.types.length) {
+        notOwned = notOwned.filter((item) => filters.types.includes(item.card.type));
       }
-      if (filters.element) {
+      if (filters.elements.length) {
         notOwned = notOwned.filter((item) => {
           const elems = JSON.parse(item.card.elements || '[]');
-          return elems.includes(filters.element);
+          return filters.elements.some((el) => elems.includes(el));
         });
       }
-      if (filters.rarity) {
-        notOwned = notOwned.filter((item) => item.card.rarity === filters.rarity);
+      if (filters.rarities.length) {
+        notOwned = notOwned.filter((item) => filters.rarities.includes(item.card.rarity));
       }
-      if (filters.set) {
-        notOwned = notOwned.filter((item) => item.set_id === filters.set || item.card.set_id === filters.set);
+      if (filters.sets.length) {
+        notOwned = notOwned.filter((item) => filters.sets.includes(item.set_id) || filters.sets.includes(item.card.set_id));
       }
       if (filters.cost) {
         notOwned = notOwned.filter((item) => item.card.cost === parseInt(filters.cost));
@@ -138,7 +156,7 @@
   let filteredTotal = $derived(filteredCollection().reduce((sum, item) => sum + item.quantity, 0));
 
   function clearFilters() {
-    filters = { type: '', element: '', rarity: '', set: '', cost: '', minQty: '', maxQty: '', q: '', completion: '' };
+    filters = { types: [], elements: [], rarities: [], sets: [], cost: '', q: '', completion: '' };
   }
 
   async function handleFileUpload(e) {
@@ -251,13 +269,11 @@
   // Share URL
   function shareCollection() {
     const params = new URLSearchParams();
-    if (filters.type) params.set('type', filters.type);
-    if (filters.element) params.set('element', filters.element);
-    if (filters.rarity) params.set('rarity', filters.rarity);
-    if (filters.set) params.set('set', filters.set);
+    if (filters.types.length) params.set('type', filters.types.join(','));
+    if (filters.elements.length) params.set('element', filters.elements.join(','));
+    if (filters.rarities.length) params.set('rarity', filters.rarities.join(','));
+    if (filters.sets.length) params.set('set', filters.sets.join(','));
     if (filters.cost) params.set('cost', filters.cost);
-    if (filters.minQty) params.set('minQty', filters.minQty);
-    if (filters.maxQty) params.set('maxQty', filters.maxQty);
     if (filters.completion) params.set('completion', filters.completion);
     if (filters.q) params.set('q', filters.q);
 
@@ -299,43 +315,85 @@
       />
     </div>
     <div class="filter-row">
-      <select class="select" bind:value={filters.type}>
-        <option value="">All Types</option>
-        {#each types as t}
-          <option value={t}>{t}</option>
-        {/each}
-      </select>
-      <select class="select" bind:value={filters.element}>
-        <option value="">All Elements</option>
-        {#each elements as el}
-          <option value={el}>{el}</option>
-        {/each}
-      </select>
-      <select class="select" bind:value={filters.rarity}>
-        <option value="">All Rarities</option>
-        {#each rarities as r}
-          <option value={r}>{r}</option>
-        {/each}
-      </select>
-      <select class="select" bind:value={filters.set}>
-        <option value="">All Sets</option>
-        {#each data.allSets as s}
-          <option value={s.id}>{s.name}</option>
-        {/each}
-      </select>
+      <div class="multi-select">
+        <button class="multi-select-trigger" onclick={() => toggleDropdown('types')}>
+          {dropdownLabel('types', 'All Types')}
+          <span class="caret">&#9662;</span>
+        </button>
+        {#if openDropdown === 'types'}
+          <div class="multi-select-dropdown">
+            {#each typeOptions as t}
+              <label class="checkbox-item">
+                <input type="checkbox" checked={filters.types.includes(t)} onchange={() => toggleFilter('types', t)} />
+                <span>{t}</span>
+              </label>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+      <div class="multi-select">
+        <button class="multi-select-trigger" onclick={() => toggleDropdown('elements')}>
+          {dropdownLabel('elements', 'All Elements')}
+          <span class="caret">&#9662;</span>
+        </button>
+        {#if openDropdown === 'elements'}
+          <div class="multi-select-dropdown">
+            {#each elementOptions as el}
+              <label class="checkbox-item">
+                <input type="checkbox" checked={filters.elements.includes(el)} onchange={() => toggleFilter('elements', el)} />
+                <span>{el}</span>
+              </label>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+      <div class="multi-select">
+        <button class="multi-select-trigger" onclick={() => toggleDropdown('rarities')}>
+          {dropdownLabel('rarities', 'All Rarities')}
+          <span class="caret">&#9662;</span>
+        </button>
+        {#if openDropdown === 'rarities'}
+          <div class="multi-select-dropdown">
+            {#each rarityOptions as r}
+              <label class="checkbox-item">
+                <input type="checkbox" checked={filters.rarities.includes(r)} onchange={() => toggleFilter('rarities', r)} />
+                <span>{r}</span>
+              </label>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+      <div class="multi-select">
+        <button class="multi-select-trigger" onclick={() => toggleDropdown('sets')}>
+          {dropdownLabel('sets', 'All Sets')}
+          <span class="caret">&#9662;</span>
+        </button>
+        {#if openDropdown === 'sets'}
+          <div class="multi-select-dropdown">
+            {#each data.allSets as s}
+              <label class="checkbox-item">
+                <input type="checkbox" checked={filters.sets.includes(s.id)} onchange={() => toggleFilter('sets', s.id)} />
+                <span>{s.name}</span>
+              </label>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
       <select class="select" bind:value={filters.cost}>
         <option value="">Any Cost</option>
         {#each Array.from({ length: 11 }, (_, i) => i) as c}
           <option value={c.toString()}>{c}</option>
         {/each}
       </select>
-      <input type="number" class="input qty-filter" placeholder="Min qty" min="1" bind:value={filters.minQty} />
-      <input type="number" class="input qty-filter" placeholder="Max qty" min="1" bind:value={filters.maxQty} />
-      <select class="select" bind:value={filters.completion}>
-        <option value="">All Cards</option>
-        <option value="missing">Missing</option>
-        <option value="extra">Extra</option>
-      </select>
+      <div class="segmented-control">
+        <button class="seg-btn" class:active={filters.completion === ''} onclick={() => { filters.completion = ''; }}>All</button>
+        <button class="seg-btn" class:active={filters.completion === 'missing'} onclick={() => { filters.completion = 'missing'; }}>Missing</button>
+        <button class="seg-btn" class:active={filters.completion === 'extra'} onclick={() => { filters.completion = 'extra'; }}>Extra</button>
+      </div>
       <button class="btn btn-secondary" onclick={clearFilters}>Clear</button>
     </div>
     <p class="results-count">Showing {filteredCollection().length} cards ({filteredTotal} total)</p>
@@ -489,14 +547,106 @@
     min-width: 180px;
   }
 
-  .qty-filter {
-    width: 90px;
+  /* Segmented control for completion filter */
+  .segmented-control {
+    display: flex;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .seg-btn {
+    padding: 0.45rem 0.75rem;
+    background: none;
+    border: none;
+    border-right: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .seg-btn:last-child {
+    border-right: none;
+  }
+
+  .seg-btn:hover {
+    background-color: var(--color-bg-tertiary);
+  }
+
+  .seg-btn.active {
+    background-color: var(--color-primary);
+    color: white;
+    font-weight: 500;
   }
 
   .results-count {
     font-size: 0.8rem;
     color: var(--color-text-muted);
     margin: 0;
+  }
+
+  /* Multi-select checkbox dropdown */
+  .multi-select {
+    position: relative;
+  }
+
+  .multi-select-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+    min-width: 120px;
+  }
+
+  .multi-select-trigger:hover {
+    border-color: var(--color-primary);
+  }
+
+  .caret {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    margin-left: auto;
+  }
+
+  .multi-select-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 100%;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 0.25rem 0;
+  }
+
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .checkbox-item:hover {
+    background-color: var(--color-bg-tertiary);
+  }
+
+  .checkbox-item input[type="checkbox"] {
+    accent-color: var(--color-primary);
   }
 
   /* Slide panel */

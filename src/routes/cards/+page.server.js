@@ -17,18 +17,22 @@ export async function load({ url, locals }) {
   const offset = (page - 1) * limit;
 
   const conditions = [];
+  const multiTypes = type ? type.split(',').filter(Boolean) : [];
+  const multiRarities = rarity ? rarity.split(',').filter(Boolean) : [];
+  const multiSets = set ? set.split(',').filter(Boolean) : [];
+  const needsJsFilter = multiTypes.length > 1 || multiRarities.length > 1 || multiSets.length > 1 || element;
 
   if (q) {
     conditions.push(like(cards.name, `%${q}%`));
   }
-  if (type) {
-    conditions.push(eq(cards.type, type));
+  if (multiTypes.length === 1) {
+    conditions.push(eq(cards.type, multiTypes[0]));
   }
-  if (rarity) {
-    conditions.push(eq(cards.rarity, rarity));
+  if (multiRarities.length === 1) {
+    conditions.push(eq(cards.rarity, multiRarities[0]));
   }
-  if (set) {
-    conditions.push(like(cards.set_ids, `%"${set}"%`));
+  if (multiSets.length === 1) {
+    conditions.push(like(cards.set_ids, `%"${multiSets[0]}"%`));
   }
   if (cost) {
     conditions.push(eq(cards.cost, parseInt(cost)));
@@ -50,8 +54,8 @@ export async function load({ url, locals }) {
     .from(cards)
     .where(where)
     .orderBy(asc(cards.name))
-    .limit(element ? 200 : limit) // fetch more if we need to filter by element in JS
-    .offset(element ? 0 : offset);
+    .limit(needsJsFilter ? 2000 : limit)
+    .offset(needsJsFilter ? 0 : offset);
 
   // Build collection map for logged-in user
   let collectionMap = {};
@@ -65,18 +69,47 @@ export async function load({ url, locals }) {
     }
   }
 
-  // Filter by element in JS since it's stored as JSON array
+  // Apply JS-side filters for multi-values and element
+  if (multiTypes.length > 1) {
+    results = results.filter((card) => multiTypes.includes(card.type));
+  }
+  if (multiRarities.length > 1) {
+    results = results.filter((card) => multiRarities.includes(card.rarity));
+  }
+  if (multiSets.length > 1) {
+    results = results.filter((card) => {
+      const cardSets = JSON.parse(card.set_ids || '[]');
+      return multiSets.some((s) => cardSets.includes(s));
+    });
+  }
   if (element) {
+    const multiElements = element.split(',').filter(Boolean);
     results = results.filter((card) => {
       const elems = JSON.parse(card.elements || '[]');
-      return elems.includes(element);
+      return multiElements.some((el) => elems.includes(el));
     });
-    // Apply pagination manually after filtering
+  }
+
+  // If we did JS-side filtering, apply pagination manually
+  if (needsJsFilter) {
     const totalFiltered = results.length;
     results = results.slice(offset, offset + limit);
-    // Override total for element filtering
+
+    // Get images for filtered results
+    const filteredImageMap = {};
+    for (const card of results) {
+      const img = await db.query.cardImages.findFirst({
+        where: and(eq(cardImages.card_id, card.id), like(cardImages.art_type, 'standard%'))
+      });
+      if (img) filteredImageMap[card.id] = img.image_url;
+    }
+    const filteredWithImages = results.map((card) => ({
+      ...card,
+      image_url: filteredImageMap[card.id] || null
+    }));
+
     return {
-      cards: results,
+      cards: filteredWithImages,
       filters: { q, type, element, rarity, set, cost, subtype },
       page,
       totalPages: Math.ceil(totalFiltered / limit),
