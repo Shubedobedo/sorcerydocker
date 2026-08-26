@@ -57,10 +57,37 @@
       result = result.filter((item) => item.quantity <= max);
     }
     if (filters.completion === 'missing') {
-      result = result.filter((item) => {
+      // Include cards not in collection (quantity 0) plus owned cards below max
+      const ownedMissing = result.filter((item) => {
         const max = maxCopies[item.card.rarity] || 4;
         return item.quantity < max;
       });
+      // Also include cards not in collection at all
+      let notOwned = data.missingCards || [];
+      // Apply same filters to notOwned
+      if (filters.q) {
+        const q = filters.q.toLowerCase();
+        notOwned = notOwned.filter((item) => item.card.name.toLowerCase().includes(q));
+      }
+      if (filters.type) {
+        notOwned = notOwned.filter((item) => item.card.type === filters.type);
+      }
+      if (filters.element) {
+        notOwned = notOwned.filter((item) => {
+          const elems = JSON.parse(item.card.elements || '[]');
+          return elems.includes(filters.element);
+        });
+      }
+      if (filters.rarity) {
+        notOwned = notOwned.filter((item) => item.card.rarity === filters.rarity);
+      }
+      if (filters.set) {
+        notOwned = notOwned.filter((item) => item.set_id === filters.set || item.card.set_id === filters.set);
+      }
+      if (filters.cost) {
+        notOwned = notOwned.filter((item) => item.card.cost === parseInt(filters.cost));
+      }
+      result = [...ownedMissing, ...notOwned].sort((a, b) => a.card.name.localeCompare(b.card.name));
     } else if (filters.completion === 'extra') {
       result = result.filter((item) => {
         const max = maxCopies[item.card.rarity] || 4;
