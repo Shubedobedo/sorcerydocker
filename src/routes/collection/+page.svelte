@@ -210,6 +210,8 @@
         placeholder="Search by name..."
         bind:value={filters.q}
       />
+    </div>
+    <div class="filter-row">
       <select class="select" bind:value={filters.type}>
         <option value="">All Types</option>
         {#each types as t}
@@ -228,8 +230,6 @@
           <option value={r}>{r}</option>
         {/each}
       </select>
-    </div>
-    <div class="filter-row">
       <select class="select" bind:value={filters.set}>
         <option value="">All Sets</option>
         {#each data.allSets as s}
