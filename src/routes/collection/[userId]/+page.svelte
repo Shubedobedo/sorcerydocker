@@ -2,11 +2,12 @@
   let { data } = $props();
 
   // Filters
-  let filters = $state({ type: '', element: '', rarity: '', set: '', cost: '', minQty: '', maxQty: '', q: '' });
+  let filters = $state({ type: '', element: '', rarity: '', set: '', cost: '', minQty: '', maxQty: '', q: '', completion: '' });
 
   const types = ['Minion', 'Magic', 'Aura', 'Artifact', 'Site', 'Avatar'];
   const elements = ['Air', 'Earth', 'Fire', 'Water'];
   const rarities = ['Ordinary', 'Exceptional', 'Elite', 'Unique'];
+  const maxCopies = { Ordinary: 4, Exceptional: 3, Elite: 2, Unique: 1 };
 
   let filteredCollection = $derived(() => {
     let result = data.collection;
@@ -41,6 +42,17 @@
       const max = parseInt(filters.maxQty);
       result = result.filter((item) => item.quantity <= max);
     }
+    if (filters.completion === 'missing') {
+      result = result.filter((item) => {
+        const max = maxCopies[item.card.rarity] || 4;
+        return item.quantity < max;
+      });
+    } else if (filters.completion === 'extra') {
+      result = result.filter((item) => {
+        const max = maxCopies[item.card.rarity] || 4;
+        return item.quantity > max;
+      });
+    }
 
     return result;
   });
@@ -49,7 +61,7 @@
   let totalCards = $derived(data.collection.reduce((sum, item) => sum + item.quantity, 0));
 
   function clearFilters() {
-    filters = { type: '', element: '', rarity: '', set: '', cost: '', minQty: '', maxQty: '', q: '' };
+    filters = { type: '', element: '', rarity: '', set: '', cost: '', minQty: '', maxQty: '', q: '', completion: '' };
   }
 
   // Apply URL params as initial filters
@@ -65,6 +77,7 @@
     if (params.get('cost')) filters.cost = params.get('cost');
     if (params.get('minQty')) filters.minQty = params.get('minQty');
     if (params.get('maxQty')) filters.maxQty = params.get('maxQty');
+    if (params.get('completion')) filters.completion = params.get('completion');
     if (params.get('q')) filters.q = params.get('q');
   });
 </script>
@@ -128,6 +141,11 @@
       </select>
       <input type="number" class="input qty-filter" placeholder="Min qty" min="1" bind:value={filters.minQty} />
       <input type="number" class="input qty-filter" placeholder="Max qty" min="1" bind:value={filters.maxQty} />
+      <select class="select" bind:value={filters.completion}>
+        <option value="">All Cards</option>
+        <option value="missing">Missing</option>
+        <option value="extra">Extra</option>
+      </select>
       <button class="btn btn-secondary" onclick={clearFilters}>Clear</button>
     </div>
     <p class="results-count">Showing {filteredCollection().length} cards ({filteredTotal} total)</p>
