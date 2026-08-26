@@ -29,7 +29,11 @@
       result = result.filter((item) => item.card.rarity === filters.rarity);
     }
     if (filters.set) {
-      result = result.filter((item) => item.set_id === filters.set || item.card.set_id === filters.set);
+      const filterSets = filters.set.split(',').filter(Boolean);
+      result = result.filter((item) => {
+        const cardSets = JSON.parse(item.card.set_ids || '[]');
+        return filterSets.some((s) => cardSets.includes(s));
+      });
     }
     if (filters.cost) {
       result = result.filter((item) => item.card.cost === parseInt(filters.cost));

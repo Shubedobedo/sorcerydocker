@@ -105,7 +105,10 @@
       result = result.filter((item) => filters.rarities.includes(item.card.rarity));
     }
     if (filters.sets.length) {
-      result = result.filter((item) => filters.sets.includes(item.set_id) || filters.sets.includes(item.card.set_id));
+      result = result.filter((item) => {
+        const cardSets = JSON.parse(item.card.set_ids || '[]');
+        return filters.sets.some((s) => cardSets.includes(s));
+      });
     }
     if (filters.cost) {
       result = result.filter((item) => item.card.cost === parseInt(filters.cost));
@@ -136,7 +139,10 @@
         notOwned = notOwned.filter((item) => filters.rarities.includes(item.card.rarity));
       }
       if (filters.sets.length) {
-        notOwned = notOwned.filter((item) => filters.sets.includes(item.set_id) || filters.sets.includes(item.card.set_id));
+        notOwned = notOwned.filter((item) => {
+          const cardSets = JSON.parse(item.card.set_ids || '[]');
+          return filters.sets.some((s) => cardSets.includes(s));
+        });
       }
       if (filters.cost) {
         notOwned = notOwned.filter((item) => item.card.cost === parseInt(filters.cost));
