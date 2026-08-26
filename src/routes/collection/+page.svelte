@@ -64,7 +64,8 @@
     } else if (filters.completion === 'extra') {
       result = result.filter((item) => {
         const max = maxCopies[item.card.rarity] || 4;
-        return item.quantity > max;
+        const tradeQty = data.tradeMap?.[item.card_id] || 0;
+        return (item.quantity - tradeQty) > max;
       });
     }
 

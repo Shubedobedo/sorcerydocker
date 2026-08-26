@@ -1,6 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import { db } from '$lib/db/index.js';
-import { collections, cards, cardImages, sets } from '$lib/db/schema.js';
+import { collections, cards, cardImages, sets, trades } from '$lib/db/schema.js';
 import { eq, and, like, asc } from 'drizzle-orm';
 
 /** @type {import('./$types').PageServerLoad} */
@@ -36,9 +36,20 @@ export async function load({ locals }) {
 
   const allSets = await db.select().from(sets).orderBy(asc(sets.name));
 
+  // Load trade binder quantities (available trades) for the extra filter
+  const userTrades = await db.select().from(trades)
+    .where(and(eq(trades.user_id, session.user.id), eq(trades.status, 'available')));
+
+  // Build a map of card_id -> total trade quantity
+  const tradeMap = {};
+  for (const t of userTrades) {
+    tradeMap[t.card_id] = (tradeMap[t.card_id] || 0) + t.quantity;
+  }
+
   return {
     collection: enriched,
     allSets,
+    tradeMap,
     session
   };
 }
