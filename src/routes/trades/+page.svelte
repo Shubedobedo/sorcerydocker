@@ -7,7 +7,7 @@
   let confirmModal = $state(null); // { title, message, onConfirm }
 
   // Filters
-  let filters = $state({ q: '', foil: '', underDollar: false });
+  let filters = $state({ q: '', foil: '', price: '' });
 
   let filteredAvailable = $derived(() => {
     let result = data.available;
@@ -21,8 +21,17 @@
     } else if (filters.foil === 'nonfoil') {
       result = result.filter((t) => !t.foil);
     }
-    if (filters.underDollar) {
-      result = result.filter((t) => t.price != null && t.price < 1);
+    if (filters.price) {
+      result = result.filter((t) => {
+        if (t.price == null) return false;
+        switch (filters.price) {
+          case 'under1': return t.price < 1;
+          case '1to5': return t.price >= 1 && t.price < 5;
+          case '5to20': return t.price >= 5 && t.price < 20;
+          case '20plus': return t.price >= 20;
+          default: return true;
+        }
+      });
     }
 
     return result;
@@ -33,7 +42,7 @@
   );
 
   function clearFilters() {
-    filters = { q: '', foil: '', underDollar: false };
+    filters = { q: '', foil: '', price: '' };
   }
 
   function showToast(message) {
@@ -152,10 +161,13 @@
           <button class="seg-btn" class:active={filters.foil === 'nonfoil'} onclick={() => { filters.foil = 'nonfoil'; }}>Non-Foil</button>
           <button class="seg-btn" class:active={filters.foil === 'foil'} onclick={() => { filters.foil = 'foil'; }}>Foil</button>
         </div>
-        <label class="checkbox-filter">
-          <input type="checkbox" bind:checked={filters.underDollar} />
-          <span>Under $1</span>
-        </label>
+        <div class="segmented-control">
+          <button class="seg-btn" class:active={filters.price === ''} onclick={() => { filters.price = ''; }}>All</button>
+          <button class="seg-btn" class:active={filters.price === 'under1'} onclick={() => { filters.price = 'under1'; }}>&lt; $1</button>
+          <button class="seg-btn" class:active={filters.price === '1to5'} onclick={() => { filters.price = '1to5'; }}>$1&ndash;5</button>
+          <button class="seg-btn" class:active={filters.price === '5to20'} onclick={() => { filters.price = '5to20'; }}>$5&ndash;20</button>
+          <button class="seg-btn" class:active={filters.price === '20plus'} onclick={() => { filters.price = '20plus'; }}>$20+</button>
+        </div>
         <button class="btn btn-secondary btn-sm" onclick={clearFilters}>Clear</button>
       </div>
     {/if}
@@ -319,20 +331,6 @@
   .seg-btn:last-child { border-right: none; }
   .seg-btn:hover { background-color: var(--color-bg-tertiary); }
   .seg-btn.active { background-color: var(--color-primary); color: white; font-weight: 500; }
-
-  .checkbox-filter {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-size: 0.85rem;
-    color: var(--color-text);
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .checkbox-filter input[type="checkbox"] {
-    accent-color: var(--color-primary);
-  }
 
   .trade-list {
     display: flex;
