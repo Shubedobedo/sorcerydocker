@@ -185,6 +185,46 @@
           </div>
         {/if}
 
+        {#if data.prices && data.prices.length > 0}
+          <div class="prices-section">
+            <h2>Market Prices</h2>
+            <table class="prices-table">
+              <thead>
+                <tr>
+                  <th>Set</th>
+                  <th>Normal</th>
+                  <th>Foil</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each data.prices as { setName, finishes }}
+                  <tr>
+                    <td class="price-set">{setName}</td>
+                    <td>
+                      {#if finishes.normal?.market != null}
+                        <span class="price">${finishes.normal.market.toFixed(2)}</span>
+                      {:else}
+                        <span class="price-na">&mdash;</span>
+                      {/if}
+                    </td>
+                    <td>
+                      {#if finishes.foil?.market != null}
+                        <span class="price">${finishes.foil.market.toFixed(2)}</span>
+                      {:else}
+                        <span class="price-na">&mdash;</span>
+                      {/if}
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+            <p class="price-attribution">
+              Market prices via <a href="https://tcgapi.dev" target="_blank" rel="noopener noreferrer">tcgapi.dev</a>
+              {#if data.lastPriceUpdate}&middot; updated {new Date(data.lastPriceUpdate).toLocaleDateString()}{/if}
+            </p>
+          </div>
+        {/if}
+
         {#if data.images?.length > 1}
           <div class="alt-arts">
             <h2>Art Versions</h2>
@@ -522,6 +562,59 @@
   .card-description h2 {
     font-size: 1rem;
     margin-bottom: 0.5rem;
+  }
+
+  .prices-section {
+    margin-top: 1.5rem;
+  }
+
+  .prices-section h2 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .prices-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    max-width: 360px;
+  }
+
+  .prices-table th,
+  .prices-table td {
+    padding: 0.4rem 0.6rem;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .prices-table th {
+    color: var(--color-text-muted);
+    font-weight: 500;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+
+  .price-set {
+    font-weight: 500;
+  }
+
+  .price {
+    color: var(--color-success);
+    font-weight: 600;
+  }
+
+  .price-na {
+    color: var(--color-text-muted);
+  }
+
+  .price-attribution {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    margin-top: 0.5rem;
+  }
+
+  .price-attribution a {
+    color: var(--color-accent);
   }
 
   .alt-arts {

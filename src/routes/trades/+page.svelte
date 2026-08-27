@@ -93,7 +93,12 @@
   <h1>Trade Binder</h1>
 
   <section class="trade-section">
-    <h2>Available for Trade ({data.available.length})</h2>
+    <h2>
+      Available for Trade ({data.available.length})
+      {#if data.availableValue > 0}
+        <span class="section-value">&middot; ${data.availableValue.toFixed(2)} market value</span>
+      {/if}
+    </h2>
 
     {#if data.available.length > 0}
       <div class="trade-list">
@@ -110,6 +115,9 @@
             <div class="trade-info">
               <a href="/cards/{trade.card.slug}" class="trade-name">{trade.card.name}</a>
               <span class="trade-meta">{trade.quantity}x &middot; {trade.set_name || trade.card.set_name}</span>
+              {#if trade.price != null}
+                <span class="trade-market">Market: ${trade.price.toFixed(2)}{#if trade.quantity > 1} &middot; ${(trade.price * trade.quantity).toFixed(2)} total{/if}</span>
+              {/if}
 
               {#if editingId === trade.id}
                 <div class="edit-form">
@@ -269,6 +277,18 @@
   .trade-detail {
     font-size: 0.8rem;
     color: var(--color-text-muted);
+  }
+
+  .trade-market {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-success);
+  }
+
+  .section-value {
+    color: var(--color-success);
+    font-weight: 600;
+    font-size: 0.85rem;
   }
 
   .trade-actions {

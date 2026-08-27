@@ -4,6 +4,10 @@ import { env } from '$env/dynamic/private';
 import { db } from '$lib/db/index.js';
 import { users, accounts, sessions } from '$lib/db/schema.js';
 import { eq } from 'drizzle-orm';
+import { startPriceScheduler } from '$lib/server/priceScheduler.js';
+
+// Kick off the background price sync scheduler once on server boot
+startPriceScheduler();
 
 export const { handle, signIn, signOut } = SvelteKitAuth({
   providers: [

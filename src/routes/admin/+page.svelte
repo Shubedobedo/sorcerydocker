@@ -25,6 +25,31 @@
     }
   }
 
+  let syncingPrices = $state(false);
+  let priceSyncResult = $state(null);
+  let priceSyncError = $state(null);
+
+  async function syncPrices() {
+    syncingPrices = true;
+    priceSyncResult = null;
+    priceSyncError = null;
+
+    try {
+      const res = await fetch('/api/admin/sync-prices', { method: 'POST' });
+      const json = await res.json();
+
+      if (res.ok) {
+        priceSyncResult = json;
+      } else {
+        priceSyncError = json.error || 'Price sync failed';
+      }
+    } catch (err) {
+      priceSyncError = err.message;
+    } finally {
+      syncingPrices = false;
+    }
+  }
+
   let roleError = $state('');
 
   async function setRole(userId, role) {
@@ -79,6 +104,44 @@
     {#if syncError}
       <div class="sync-result error">
         Error: {syncError}
+      </div>
+    {/if}
+  </section>
+
+  <section class="admin-section">
+    <h2>Price Sync</h2>
+    <p>Pull the latest market prices from tcgapi.dev. Auto-syncs every 3 days.</p>
+
+    {#if !data.tcgApiConfigured}
+      <div class="sync-result error">TCGAPI_KEY is not configured on the server.</div>
+    {/if}
+
+    {#if data.lastPriceSync}
+      <p class="last-sync">Last price sync: {new Date(data.lastPriceSync).toLocaleString()} &middot; {data.priceRowCount} price entries</p>
+    {:else}
+      <p class="last-sync">Prices never synced</p>
+    {/if}
+
+    <button class="btn btn-primary" onclick={syncPrices} disabled={syncingPrices || !data.tcgApiConfigured}>
+      {#if syncingPrices}
+        Syncing prices...
+      {:else}
+        Sync Prices Now
+      {/if}
+    </button>
+
+    {#if priceSyncResult}
+      <div class="sync-result success">
+        Price sync complete: {priceSyncResult.priceRows} prices across {priceSyncResult.setsProcessed} sets
+        ({priceSyncResult.matched} matched, {priceSyncResult.unmatched} unmatched).
+        {#if priceSyncResult.stoppedEarly}<br />Stopped early due to daily rate limit — run again tomorrow to finish.{/if}
+        {#if priceSyncResult.rateRemaining != null}<br />API requests remaining today: {priceSyncResult.rateRemaining}{/if}
+      </div>
+    {/if}
+
+    {#if priceSyncError}
+      <div class="sync-result error">
+        Error: {priceSyncError}
       </div>
     {/if}
   </section>

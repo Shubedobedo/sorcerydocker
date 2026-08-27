@@ -303,6 +303,10 @@
         <span>{uniqueCards} unique cards</span>
         <span>&middot;</span>
         <span>{totalCards} total</span>
+        {#if data.totalValue > 0}
+          <span>&middot;</span>
+          <span class="collection-value">${data.totalValue.toFixed(2)}</span>
+        {/if}
       </div>
     </div>
     <div class="header-actions">
@@ -418,9 +422,10 @@
           </a>
           <div class="collection-card-info">
             <span class="card-name">{item.card.name}</span>
-            {#if item.set_name}
-              <span class="card-set">{item.set_name}</span>
-            {/if}
+            <span class="card-set-price">
+              {#if item.set_name}<span class="card-set">{item.set_name}</span>{/if}
+              {#if item.price != null}<span class="card-price">${item.price.toFixed(2)}</span>{/if}
+            </span>
             <div class="qty-controls">
               <button class="qty-btn" onclick={() => updateQuantity(item, item.quantity - 1)}>-</button>
               <span class="qty">{item.quantity}</span>
@@ -793,6 +798,24 @@
   .card-set {
     font-size: 0.7rem;
     color: var(--color-text-muted);
+  }
+
+  .card-set-price {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .card-price {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--color-success);
+  }
+
+  .collection-value {
+    color: var(--color-success);
+    font-weight: 600;
   }
 
   .qty-controls {

@@ -48,6 +48,28 @@ sqlite.exec(`
     set_name TEXT
   );
 
+  CREATE TABLE IF NOT EXISTS card_prices (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    card_id TEXT NOT NULL REFERENCES cards(id),
+    set_name TEXT NOT NULL,
+    finish TEXT NOT NULL DEFAULT 'normal',
+    tcgplayer_id INTEGER,
+    market_price TEXT,
+    low_price TEXT,
+    median_price TEXT,
+    total_listings INTEGER,
+    image_url TEXT,
+    price_updated_at TEXT,
+    synced_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_card_prices_card_id ON card_prices(card_id);
+
+  CREATE TABLE IF NOT EXISTS app_meta (
+    key TEXT PRIMARY KEY,
+    value TEXT
+  );
+
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     name TEXT,

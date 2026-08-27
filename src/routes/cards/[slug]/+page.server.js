@@ -1,5 +1,5 @@
 import { db } from '$lib/db/index.js';
-import { cards, cardImages, decks, collections } from '$lib/db/schema.js';
+import { cards, cardImages, decks, collections, cardPrices } from '$lib/db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 
@@ -39,11 +39,46 @@ export async function load({ params, locals }) {
     ownedCount = owned.reduce((sum, item) => sum + item.quantity, 0);
   }
 
+  // Get prices for this card, grouped by set + finish
+  const priceRows = await db
+    .select()
+    .from(cardPrices)
+    .where(eq(cardPrices.card_id, card.id));
+
+  // Group into { setName: { normal: {...}, foil: {...} } }
+  const priceMap = {};
+  let lastPriceUpdate = null;
+  for (const p of priceRows) {
+    if (!priceMap[p.set_name]) priceMap[p.set_name] = {};
+    priceMap[p.set_name][p.finish] = {
+      market: p.market_price ? parseFloat(p.market_price) : null,
+      low: p.low_price ? parseFloat(p.low_price) : null,
+      median: p.median_price ? parseFloat(p.median_price) : null,
+      listings: p.total_listings,
+      tcgplayer_id: p.tcgplayer_id
+    };
+    if (p.price_updated_at && (!lastPriceUpdate || p.price_updated_at > lastPriceUpdate)) {
+      lastPriceUpdate = p.price_updated_at;
+    }
+  }
+
+  // Order sets by release order (newest sets first is fine, but keep a sensible order)
+  const setOrder = ['Alpha', 'Beta', 'Arthurian Legends', 'Arthurian Legends Promo', 'Dragonlord', 'Gothic', 'Dust Reward Promos'];
+  const prices = Object.entries(priceMap)
+    .map(([setName, finishes]) => ({ setName, finishes }))
+    .sort((a, b) => {
+      const ai = setOrder.indexOf(a.setName);
+      const bi = setOrder.indexOf(b.setName);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+
   return {
     card,
     images,
     userDecks,
     ownedCount,
+    prices,
+    lastPriceUpdate,
     session
   };
 }

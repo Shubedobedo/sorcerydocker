@@ -32,6 +32,26 @@ export const cardImages = sqliteTable('card_images', {
   set_name: text('set_name')
 });
 
+export const cardPrices = sqliteTable('card_prices', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  card_id: text('card_id').notNull().references(() => cards.id),
+  set_name: text('set_name').notNull(), // e.g. Alpha, Beta, Gothic
+  finish: text('finish').notNull().default('normal'), // normal, foil
+  tcgplayer_id: integer('tcgplayer_id'),
+  market_price: text('market_price'), // stored as text to preserve decimal precision
+  low_price: text('low_price'),
+  median_price: text('median_price'),
+  total_listings: integer('total_listings'),
+  image_url: text('image_url'),
+  price_updated_at: text('price_updated_at'), // when tcgapi last updated the price
+  synced_at: text('synced_at').notNull().$defaultFn(() => new Date().toISOString())
+});
+
+export const appMeta = sqliteTable('app_meta', {
+  key: text('key').primaryKey(),
+  value: text('value')
+});
+
 // ============================================================
 // USERS
 // ============================================================
