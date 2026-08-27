@@ -6,6 +6,36 @@
   let toast = $state('');
   let confirmModal = $state(null); // { title, message, onConfirm }
 
+  // Filters
+  let filters = $state({ q: '', foil: '', underDollar: false });
+
+  let filteredAvailable = $derived(() => {
+    let result = data.available;
+
+    if (filters.q) {
+      const q = filters.q.toLowerCase();
+      result = result.filter((t) => t.card.name.toLowerCase().includes(q));
+    }
+    if (filters.foil === 'foil') {
+      result = result.filter((t) => t.foil);
+    } else if (filters.foil === 'nonfoil') {
+      result = result.filter((t) => !t.foil);
+    }
+    if (filters.underDollar) {
+      result = result.filter((t) => t.price != null && t.price < 1);
+    }
+
+    return result;
+  });
+
+  let filteredValue = $derived(
+    filteredAvailable().reduce((sum, t) => sum + (t.price != null ? t.price * t.quantity : 0), 0)
+  );
+
+  function clearFilters() {
+    filters = { q: '', foil: '', underDollar: false };
+  }
+
   function showToast(message) {
     toast = message;
     setTimeout(() => { toast = ''; }, 3000);
@@ -103,15 +133,36 @@
 
   <section class="trade-section">
     <h2>
-      Available for Trade ({data.available.length})
-      {#if data.availableValue > 0}
-        <span class="section-value">&middot; ${data.availableValue.toFixed(2)} market value</span>
+      Available for Trade ({filteredAvailable().length}{#if filteredAvailable().length !== data.available.length} of {data.available.length}{/if})
+      {#if filteredValue > 0}
+        <span class="section-value">&middot; ${filteredValue.toFixed(2)} market value</span>
       {/if}
     </h2>
 
     {#if data.available.length > 0}
+      <div class="filters-bar">
+        <input
+          type="search"
+          class="input search-input"
+          placeholder="Search by name..."
+          bind:value={filters.q}
+        />
+        <div class="segmented-control">
+          <button class="seg-btn" class:active={filters.foil === ''} onclick={() => { filters.foil = ''; }}>All</button>
+          <button class="seg-btn" class:active={filters.foil === 'nonfoil'} onclick={() => { filters.foil = 'nonfoil'; }}>Non-Foil</button>
+          <button class="seg-btn" class:active={filters.foil === 'foil'} onclick={() => { filters.foil = 'foil'; }}>Foil</button>
+        </div>
+        <label class="checkbox-filter">
+          <input type="checkbox" bind:checked={filters.underDollar} />
+          <span>Under $1</span>
+        </label>
+        <button class="btn btn-secondary btn-sm" onclick={clearFilters}>Clear</button>
+      </div>
+    {/if}
+
+    {#if filteredAvailable().length > 0}
       <div class="trade-list">
-        {#each data.available as trade (trade.id)}
+        {#each filteredAvailable() as trade (trade.id)}
           <div class="trade-card">
             <a href="/cards/{trade.card.slug}" class="trade-image">
               {#if trade.card.image_url}
@@ -161,6 +212,8 @@
           </div>
         {/each}
       </div>
+    {:else if data.available.length > 0}
+      <p class="empty">No trades match your filters.</p>
     {:else}
       <p class="empty">No cards marked for trade. Go to your <a href="/collection">collection</a> to mark cards.</p>
     {/if}
@@ -226,6 +279,59 @@
     font-size: 1rem;
     color: var(--color-text-muted);
     margin-bottom: 1rem;
+  }
+
+  .filters-bar {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+  }
+
+  .filters-bar .search-input {
+    flex: 1;
+    min-width: 160px;
+  }
+
+  .segmented-control {
+    display: flex;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+
+  .seg-btn {
+    padding: 0.45rem 0.75rem;
+    background: none;
+    border: none;
+    border-right: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .seg-btn:last-child { border-right: none; }
+  .seg-btn:hover { background-color: var(--color-bg-tertiary); }
+  .seg-btn.active { background-color: var(--color-primary); color: white; font-weight: 500; }
+
+  .checkbox-filter {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--color-text);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .checkbox-filter input[type="checkbox"] {
+    accent-color: var(--color-primary);
   }
 
   .trade-list {
