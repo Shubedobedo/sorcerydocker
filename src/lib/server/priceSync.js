@@ -157,14 +157,21 @@ export async function loadPriceResolver() {
     (byCard[p.card_id] ||= []).push(p);
   }
 
-  function resolve(cardId, setName) {
-    const normalKey = `${cardId}::${setName}::normal`;
-    if (lookup[normalKey] != null) return lookup[normalKey];
-    const foilKey = `${cardId}::${setName}::foil`;
-    if (lookup[foilKey] != null) return lookup[foilKey];
+  // finish: 'normal' (default) or 'foil' — determines which price to prefer.
+  function resolve(cardId, setName, finish = 'normal') {
+    const primary = finish === 'foil' ? 'foil' : 'normal';
+    const secondary = finish === 'foil' ? 'normal' : 'foil';
+
+    // Prefer the requested finish for the item's set
+    if (lookup[`${cardId}::${setName}::${primary}`] != null) return lookup[`${cardId}::${setName}::${primary}`];
+    // Then the other finish for that set
+    if (lookup[`${cardId}::${setName}::${secondary}`] != null) return lookup[`${cardId}::${setName}::${secondary}`];
+
     const cardRows = byCard[cardId] || [];
-    const normals = cardRows.filter((r) => r.finish === 'normal' && r.market_price != null).map((r) => parseFloat(r.market_price));
-    if (normals.length) return Math.min(...normals);
+    // Then cheapest of the requested finish across any set
+    const primaryPrices = cardRows.filter((r) => r.finish === primary && r.market_price != null).map((r) => parseFloat(r.market_price));
+    if (primaryPrices.length) return Math.min(...primaryPrices);
+    // Fallback: cheapest of any finish
     const any = cardRows.filter((r) => r.market_price != null).map((r) => parseFloat(r.market_price));
     return any.length ? Math.min(...any) : null;
   }

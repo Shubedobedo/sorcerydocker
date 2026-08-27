@@ -32,6 +32,15 @@
     window.location.reload();
   }
 
+  async function toggleFoil(trade) {
+    await fetch('/api/trades', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: trade.id, foil: !trade.foil })
+    });
+    window.location.reload();
+  }
+
   async function markTraded(id) {
     showConfirm('Mark as Traded', 'This will remove the card from your collection.', async () => {
       await fetch('/api/trades', {
@@ -113,10 +122,13 @@
             </a>
 
             <div class="trade-info">
-              <a href="/cards/{trade.card.slug}" class="trade-name">{trade.card.name}</a>
+              <a href="/cards/{trade.card.slug}" class="trade-name">
+                {trade.card.name}
+                {#if trade.foil}<span class="foil-badge">FOIL</span>{/if}
+              </a>
               <span class="trade-meta">{trade.quantity}x &middot; {trade.set_name || trade.card.set_name}</span>
               {#if trade.price != null}
-                <span class="trade-market">Market: ${trade.price.toFixed(2)}{#if trade.quantity > 1} &middot; ${(trade.price * trade.quantity).toFixed(2)} total{/if}</span>
+                <span class="trade-market">Market: ${trade.price.toFixed(2)}{#if trade.quantity > 1} &middot; ${(trade.price * trade.quantity).toFixed(2)} total{/if}{#if trade.foil} (foil){/if}</span>
               {/if}
 
               {#if editingId === trade.id}
@@ -138,6 +150,9 @@
 
                 <div class="trade-actions">
                   <button class="btn btn-secondary btn-sm" onclick={() => startEdit(trade)}>Edit</button>
+                  <button class="btn btn-secondary btn-sm" class:foil-active={trade.foil} onclick={() => toggleFoil(trade)}>
+                    {trade.foil ? '✦ Foil' : 'Mark Foil'}
+                  </button>
                   <button class="btn btn-primary btn-sm" onclick={() => markTraded(trade.id)}>Mark Traded</button>
                   <button class="btn btn-danger btn-sm" onclick={() => removeTrade(trade.id)}>Remove</button>
                 </div>
@@ -283,6 +298,24 @@
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--color-success);
+  }
+
+  .foil-badge {
+    display: inline-block;
+    margin-left: 0.4rem;
+    padding: 0.05rem 0.35rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, #b07ddb, #7c9cbf, #4a8fa8);
+    color: white;
+    vertical-align: middle;
+  }
+
+  .foil-active {
+    border-color: #b07ddb;
+    color: #b07ddb;
   }
 
   .section-value {

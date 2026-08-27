@@ -8,7 +8,7 @@ export async function POST({ locals, request }) {
   const session = await locals.auth();
   if (!session?.user) return json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { card_id, set_id, set_name, quantity, location, expected_value } = await request.json();
+  const { card_id, set_id, set_name, quantity, location, expected_value, foil } = await request.json();
 
   if (!card_id) {
     return json({ error: 'card_id is required' }, { status: 400 });
@@ -21,6 +21,7 @@ export async function POST({ locals, request }) {
     set_id: set_id || null,
     set_name: set_name || null,
     quantity: quantity || 1,
+    foil: foil ? 1 : 0,
     location: location || null,
     expected_value: expected_value || null
   }).returning();
@@ -33,7 +34,7 @@ export async function PATCH({ locals, request }) {
   const session = await locals.auth();
   if (!session?.user) return json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { id, location, expected_value, status } = await request.json();
+  const { id, location, expected_value, status, foil } = await request.json();
 
   if (!id) return json({ error: 'id is required' }, { status: 400 });
 
@@ -46,6 +47,7 @@ export async function PATCH({ locals, request }) {
   const updates = {};
   if (location !== undefined) updates.location = location;
   if (expected_value !== undefined) updates.expected_value = expected_value;
+  if (foil !== undefined) updates.foil = foil ? 1 : 0;
 
   if (status === 'traded') {
     updates.status = 'archived';

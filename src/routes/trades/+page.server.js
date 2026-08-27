@@ -27,7 +27,7 @@ export async function load({ locals }) {
       const img = await db.query.cardImages.findFirst({
         where: and(eq(cardImages.card_id, card.id), like(cardImages.art_type, 'standard%'))
       });
-      const price = resolve(trade.card_id, trade.set_name);
+      const price = resolve(trade.card_id, trade.set_name, trade.foil ? 'foil' : 'normal');
       enriched.push({
         ...trade,
         price,

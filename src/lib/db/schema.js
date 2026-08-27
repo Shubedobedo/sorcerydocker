@@ -194,6 +194,7 @@ export const trades = sqliteTable('trades', {
   set_id: text('set_id'),
   set_name: text('set_name'),
   quantity: integer('quantity').notNull().default(1),
+  foil: integer('foil').notNull().default(0), // 0 = normal, 1 = foil
   location: text('location'), // e.g. "Binder 2, Page 6"
   expected_value: text('expected_value'), // e.g. "$25" or "15 USD"
   status: text('status').notNull().default('available'), // available, traded, archived
