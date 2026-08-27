@@ -1,6 +1,45 @@
 <script>
   let { data } = $props();
   let activeTab = $state('decks');
+
+  // Trade filters
+  let tradeFilters = $state({ q: '', foil: '', price: '' });
+
+  let filteredTrades = $derived(() => {
+    let result = data.sharedTrades;
+
+    if (tradeFilters.q) {
+      const q = tradeFilters.q.toLowerCase();
+      result = result.filter((t) => t.card.name.toLowerCase().includes(q));
+    }
+    if (tradeFilters.foil === 'foil') {
+      result = result.filter((t) => t.foil);
+    } else if (tradeFilters.foil === 'nonfoil') {
+      result = result.filter((t) => !t.foil);
+    }
+    if (tradeFilters.price) {
+      result = result.filter((t) => {
+        if (t.price == null) return false;
+        switch (tradeFilters.price) {
+          case 'under1': return t.price < 1;
+          case '1to5': return t.price >= 1 && t.price < 5;
+          case '5to20': return t.price >= 5 && t.price < 20;
+          case '20plus': return t.price >= 20;
+          default: return true;
+        }
+      });
+    }
+
+    return result;
+  });
+
+  let filteredTradeValue = $derived(
+    filteredTrades().reduce((sum, t) => sum + (t.price != null ? t.price * t.quantity : 0), 0)
+  );
+
+  function clearTradeFilters() {
+    tradeFilters = { q: '', foil: '', price: '' };
+  }
 </script>
 
 <svelte:head>
@@ -94,26 +133,64 @@
     {:else if activeTab === 'trades'}
       {#if data.canSeeTrades}
         {#if data.sharedTrades.length > 0}
-          <div class="trade-list">
-            {#each data.sharedTrades as trade}
-              <div class="trade-card">
-                <a href="/cards/{trade.card.slug}" class="trade-image">
-                  {#if trade.card.image_url}
-                    <img src={trade.card.image_url} alt={trade.card.name} loading="lazy" />
-                  {:else}
-                    <div class="trade-placeholder">{trade.card.name}</div>
-                  {/if}
-                </a>
-                <div class="trade-info">
-                  <a href="/cards/{trade.card.slug}" class="trade-name">{trade.card.name}</a>
-                  <span class="trade-meta">{trade.quantity}x · {trade.card.type || ''}</span>
-                  {#if trade.expected_value}
-                    <span class="trade-value">Value: {trade.expected_value}</span>
-                  {/if}
-                </div>
-              </div>
-            {/each}
+          {#if filteredTradeValue > 0}
+            <p class="collection-stats">
+              {filteredTrades().length}{#if filteredTrades().length !== data.sharedTrades.length} of {data.sharedTrades.length}{/if} cards
+              <span class="section-value">&middot; ${filteredTradeValue.toFixed(2)} market value</span>
+            </p>
+          {/if}
+          <div class="filters-bar">
+            <input
+              type="search"
+              class="input search-input"
+              placeholder="Search by name..."
+              bind:value={tradeFilters.q}
+            />
+            <div class="segmented-control">
+              <button class="seg-btn" class:active={tradeFilters.foil === ''} onclick={() => { tradeFilters.foil = ''; }}>All</button>
+              <button class="seg-btn" class:active={tradeFilters.foil === 'nonfoil'} onclick={() => { tradeFilters.foil = 'nonfoil'; }}>Non-Foil</button>
+              <button class="seg-btn" class:active={tradeFilters.foil === 'foil'} onclick={() => { tradeFilters.foil = 'foil'; }}>Foil</button>
+            </div>
+            <div class="segmented-control">
+              <button class="seg-btn" class:active={tradeFilters.price === ''} onclick={() => { tradeFilters.price = ''; }}>All</button>
+              <button class="seg-btn" class:active={tradeFilters.price === 'under1'} onclick={() => { tradeFilters.price = 'under1'; }}>&lt; $1</button>
+              <button class="seg-btn" class:active={tradeFilters.price === '1to5'} onclick={() => { tradeFilters.price = '1to5'; }}>$1&ndash;5</button>
+              <button class="seg-btn" class:active={tradeFilters.price === '5to20'} onclick={() => { tradeFilters.price = '5to20'; }}>$5&ndash;20</button>
+              <button class="seg-btn" class:active={tradeFilters.price === '20plus'} onclick={() => { tradeFilters.price = '20plus'; }}>$20+</button>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick={clearTradeFilters}>Clear</button>
           </div>
+
+          {#if filteredTrades().length > 0}
+            <div class="trade-list">
+              {#each filteredTrades() as trade}
+                <div class="trade-card">
+                  <a href="/cards/{trade.card.slug}" class="trade-image">
+                    {#if trade.card.image_url}
+                      <img src={trade.card.image_url} alt={trade.card.name} loading="lazy" />
+                    {:else}
+                      <div class="trade-placeholder">{trade.card.name}</div>
+                    {/if}
+                  </a>
+                  <div class="trade-info">
+                    <a href="/cards/{trade.card.slug}" class="trade-name">
+                      {trade.card.name}
+                      {#if trade.foil}<span class="foil-badge">FOIL</span>{/if}
+                    </a>
+                    <span class="trade-meta">{trade.quantity}x · {trade.card.type || ''}</span>
+                    {#if trade.price != null}
+                      <span class="trade-market">Market: ${trade.price.toFixed(2)}{#if trade.quantity > 1} · ${(trade.price * trade.quantity).toFixed(2)} total{/if}{#if trade.foil} (foil){/if}</span>
+                    {/if}
+                    {#if trade.expected_value}
+                      <span class="trade-value">Value: {trade.expected_value}</span>
+                    {/if}
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <p class="empty">No trades match your filters.</p>
+          {/if}
         {:else}
           <p class="empty">Nothing for trade</p>
         {/if}
@@ -203,6 +280,18 @@
   .trade-meta { font-size: 0.8rem; color: var(--color-text-muted); }
   .trade-detail { font-size: 0.8rem; color: var(--color-text-muted); }
   .trade-value { font-size: 0.8rem; color: var(--color-accent); font-weight: 500; }
+  .trade-market { font-size: 0.8rem; font-weight: 600; color: var(--color-success); }
+  .section-value { color: var(--color-success); font-weight: 600; }
+  .foil-badge { display: inline-block; margin-left: 0.4rem; padding: 0.05rem 0.35rem; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.05em; border-radius: var(--radius-sm); background: linear-gradient(135deg, #b07ddb, #7c9cbf, #4a8fa8); color: white; vertical-align: middle; }
+
+  .filters-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; padding: 0.75rem 1rem; background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+  .filters-bar .search-input { flex: 1; min-width: 160px; }
+  .segmented-control { display: flex; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; }
+  .seg-btn { padding: 0.45rem 0.75rem; background: none; border: none; border-right: 1px solid var(--color-border); color: var(--color-text-muted); font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
+  .seg-btn:last-child { border-right: none; }
+  .seg-btn:hover { background-color: var(--color-bg-tertiary); }
+  .seg-btn.active { background-color: var(--color-primary); color: white; font-weight: 500; }
+  .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
 
   @media (max-width: 600px) {
     .tabs { overflow-x: auto; }

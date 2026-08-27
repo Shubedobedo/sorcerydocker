@@ -2,6 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { db } from '$lib/db/index.js';
 import { users, friendships, decks, cubes, collections, trades, cards, cardImages } from '$lib/db/schema.js';
 import { eq, and, like, desc } from 'drizzle-orm';
+import { loadPriceResolver } from '$lib/server/priceSync.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ locals, params }) {
@@ -66,6 +67,7 @@ export async function load({ locals, params }) {
 
   // Trades — only if they share with me
   if (theirSharing?.share_trades) {
+    const { resolve } = await loadPriceResolver();
     const rawTrades = await db.select().from(trades)
       .where(and(eq(trades.user_id, friendId), eq(trades.status, 'available')));
     for (const trade of rawTrades) {
@@ -74,7 +76,12 @@ export async function load({ locals, params }) {
         const img = await db.query.cardImages.findFirst({
           where: and(eq(cardImages.card_id, card.id), like(cardImages.art_type, 'standard%'))
         });
-        sharedTrades.push({ ...trade, card: { name: card.name, slug: card.slug, image_url: img?.image_url || null, type: card.type } });
+        const price = resolve(trade.card_id, trade.set_name, trade.foil ? 'foil' : 'normal');
+        sharedTrades.push({
+          ...trade,
+          price,
+          card: { name: card.name, slug: card.slug, image_url: img?.image_url || null, type: card.type }
+        });
       }
     }
   }
