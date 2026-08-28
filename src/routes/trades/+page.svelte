@@ -1,4 +1,6 @@
 <script>
+  import { onMount } from 'svelte';
+
   let { data } = $props();
   let editingId = $state(null);
   let editLocation = $state('');
@@ -8,7 +10,29 @@
   let confirmModal = $state(null); // { title, message, onConfirm }
 
   // Filters
-  let filters = $state({ q: '', foil: '', price: '' });
+  let filters = $state({ q: '', foil: '', price: '', sets: [] });
+  let openSetDropdown = $state(false);
+
+  // Distinct sets present in the available trades
+  let availableSetOptions = $derived(() => {
+    const names = [...new Set(data.available.map((t) => t.set_name).filter(Boolean))];
+    return names.sort();
+  });
+
+  function toggleSet(setName) {
+    if (filters.sets.includes(setName)) {
+      filters.sets = filters.sets.filter((s) => s !== setName);
+    } else {
+      filters.sets = [...filters.sets, setName];
+    }
+    filters = { ...filters };
+  }
+
+  function setDropdownLabel() {
+    if (filters.sets.length === 0) return 'All Sets';
+    if (filters.sets.length === 1) return filters.sets[0];
+    return `${filters.sets.length} sets`;
+  }
 
   let filteredAvailable = $derived(() => {
     let result = data.available;
@@ -21,6 +45,9 @@
       result = result.filter((t) => t.foil);
     } else if (filters.foil === 'nonfoil') {
       result = result.filter((t) => !t.foil);
+    }
+    if (filters.sets.length) {
+      result = result.filter((t) => filters.sets.includes(t.set_name));
     }
     if (filters.price) {
       result = result.filter((t) => {
@@ -43,8 +70,16 @@
   );
 
   function clearFilters() {
-    filters = { q: '', foil: '', price: '' };
+    filters = { q: '', foil: '', price: '', sets: [] };
   }
+
+  onMount(() => {
+    const handler = (e) => {
+      if (!e.target.closest('.multi-select')) openSetDropdown = false;
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  });
 
   function showToast(message) {
     toast = message;
@@ -163,6 +198,24 @@
           <button class="seg-btn" class:active={filters.foil === 'nonfoil'} onclick={() => { filters.foil = 'nonfoil'; }}>Non-Foil</button>
           <button class="seg-btn" class:active={filters.foil === 'foil'} onclick={() => { filters.foil = 'foil'; }}>Foil</button>
         </div>
+        {#if availableSetOptions().length > 1}
+          <div class="multi-select">
+            <button class="multi-select-trigger" onclick={() => { openSetDropdown = !openSetDropdown; }}>
+              {setDropdownLabel()}
+              <span class="caret">&#9662;</span>
+            </button>
+            {#if openSetDropdown}
+              <div class="multi-select-dropdown">
+                {#each availableSetOptions() as setName}
+                  <label class="checkbox-item">
+                    <input type="checkbox" checked={filters.sets.includes(setName)} onchange={() => toggleSet(setName)} />
+                    <span>{setName}</span>
+                  </label>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/if}
         <div class="segmented-control">
           <button class="seg-btn" class:active={filters.price === ''} onclick={() => { filters.price = ''; }}>All</button>
           <button class="seg-btn" class:active={filters.price === 'under1'} onclick={() => { filters.price = 'under1'; }}>&lt; $1</button>
@@ -341,6 +394,15 @@
   .seg-btn:last-child { border-right: none; }
   .seg-btn:hover { background-color: var(--color-bg-tertiary); }
   .seg-btn.active { background-color: var(--color-primary); color: white; font-weight: 500; }
+
+  .multi-select { position: relative; }
+  .multi-select-trigger { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text); font-size: 0.8rem; cursor: pointer; white-space: nowrap; min-width: 110px; }
+  .multi-select-trigger:hover { border-color: var(--color-primary); }
+  .caret { font-size: 0.7rem; color: var(--color-text-muted); margin-left: auto; }
+  .multi-select-dropdown { position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%; background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); z-index: 100; max-height: 240px; overflow-y: auto; padding: 0.25rem 0; }
+  .checkbox-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.75rem; cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
+  .checkbox-item:hover { background-color: var(--color-bg-tertiary); }
+  .checkbox-item input[type="checkbox"] { accent-color: var(--color-primary); }
 
   .trade-list {
     display: flex;

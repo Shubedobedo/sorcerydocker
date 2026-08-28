@@ -3,7 +3,28 @@
   let activeTab = $state('decks');
 
   // Trade filters
-  let tradeFilters = $state({ q: '', foil: '', price: '' });
+  let tradeFilters = $state({ q: '', foil: '', price: '', sets: [] });
+  let openSetDropdown = $state(false);
+
+  let availableSetOptions = $derived(() => {
+    const names = [...new Set(data.sharedTrades.map((t) => t.set_name).filter(Boolean))];
+    return names.sort();
+  });
+
+  function toggleSet(setName) {
+    if (tradeFilters.sets.includes(setName)) {
+      tradeFilters.sets = tradeFilters.sets.filter((s) => s !== setName);
+    } else {
+      tradeFilters.sets = [...tradeFilters.sets, setName];
+    }
+    tradeFilters = { ...tradeFilters };
+  }
+
+  function setDropdownLabel() {
+    if (tradeFilters.sets.length === 0) return 'All Sets';
+    if (tradeFilters.sets.length === 1) return tradeFilters.sets[0];
+    return `${tradeFilters.sets.length} sets`;
+  }
 
   let filteredTrades = $derived(() => {
     let result = data.sharedTrades;
@@ -16,6 +37,9 @@
       result = result.filter((t) => t.foil);
     } else if (tradeFilters.foil === 'nonfoil') {
       result = result.filter((t) => !t.foil);
+    }
+    if (tradeFilters.sets.length) {
+      result = result.filter((t) => tradeFilters.sets.includes(t.set_name));
     }
     if (tradeFilters.price) {
       result = result.filter((t) => {
@@ -38,8 +62,17 @@
   );
 
   function clearTradeFilters() {
-    tradeFilters = { q: '', foil: '', price: '' };
+    tradeFilters = { q: '', foil: '', price: '', sets: [] };
   }
+
+  import { onMount } from 'svelte';
+  onMount(() => {
+    const handler = (e) => {
+      if (!e.target.closest('.multi-select')) openSetDropdown = false;
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  });
 </script>
 
 <svelte:head>
@@ -151,6 +184,24 @@
               <button class="seg-btn" class:active={tradeFilters.foil === 'nonfoil'} onclick={() => { tradeFilters.foil = 'nonfoil'; }}>Non-Foil</button>
               <button class="seg-btn" class:active={tradeFilters.foil === 'foil'} onclick={() => { tradeFilters.foil = 'foil'; }}>Foil</button>
             </div>
+            {#if availableSetOptions().length > 1}
+              <div class="multi-select">
+                <button class="multi-select-trigger" onclick={() => { openSetDropdown = !openSetDropdown; }}>
+                  {setDropdownLabel()}
+                  <span class="caret">&#9662;</span>
+                </button>
+                {#if openSetDropdown}
+                  <div class="multi-select-dropdown">
+                    {#each availableSetOptions() as setName}
+                      <label class="checkbox-item">
+                        <input type="checkbox" checked={tradeFilters.sets.includes(setName)} onchange={() => toggleSet(setName)} />
+                        <span>{setName}</span>
+                      </label>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+            {/if}
             <div class="segmented-control">
               <button class="seg-btn" class:active={tradeFilters.price === ''} onclick={() => { tradeFilters.price = ''; }}>All</button>
               <button class="seg-btn" class:active={tradeFilters.price === 'under1'} onclick={() => { tradeFilters.price = 'under1'; }}>&lt; $1</button>
@@ -292,6 +343,15 @@
   .seg-btn:hover { background-color: var(--color-bg-tertiary); }
   .seg-btn.active { background-color: var(--color-primary); color: white; font-weight: 500; }
   .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+
+  .multi-select { position: relative; }
+  .multi-select-trigger { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text); font-size: 0.8rem; cursor: pointer; white-space: nowrap; min-width: 110px; }
+  .multi-select-trigger:hover { border-color: var(--color-primary); }
+  .caret { font-size: 0.7rem; color: var(--color-text-muted); margin-left: auto; }
+  .multi-select-dropdown { position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%; background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); z-index: 100; max-height: 240px; overflow-y: auto; padding: 0.25rem 0; }
+  .checkbox-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.75rem; cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
+  .checkbox-item:hover { background-color: var(--color-bg-tertiary); }
+  .checkbox-item input[type="checkbox"] { accent-color: var(--color-primary); }
 
   @media (max-width: 600px) {
     .tabs { overflow-x: auto; }
