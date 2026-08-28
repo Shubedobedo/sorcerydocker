@@ -3,6 +3,7 @@
   let editingId = $state(null);
   let editLocation = $state('');
   let editValue = $state('');
+  let editSet = $state('');
   let toast = $state('');
   let confirmModal = $state(null); // { title, message, onConfirm }
 
@@ -58,13 +59,14 @@
     editingId = trade.id;
     editLocation = trade.location || '';
     editValue = trade.expected_value || '';
+    editSet = trade.set_name || '';
   }
 
   async function saveEdit(id) {
     await fetch('/api/trades', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, location: editLocation, expected_value: editValue })
+      body: JSON.stringify({ id, location: editLocation, expected_value: editValue, set_name: editSet })
     });
     editingId = null;
     showToast('Trade details saved');
@@ -196,6 +198,14 @@
 
               {#if editingId === trade.id}
                 <div class="edit-form">
+                  {#if trade.availableSets && trade.availableSets.length > 1}
+                    <label class="edit-label">Set</label>
+                    <select class="select" bind:value={editSet}>
+                      {#each trade.availableSets as setName}
+                        <option value={setName}>{setName}</option>
+                      {/each}
+                    </select>
+                  {/if}
                   <input class="input" placeholder="Location (e.g. Binder 2, Page 6)" bind:value={editLocation} />
                   <input class="input" placeholder="Expected value (e.g. $25)" bind:value={editValue} />
                   <div class="edit-actions">
@@ -439,6 +449,12 @@
     flex-direction: column;
     gap: 0.5rem;
     margin-top: 0.5rem;
+  }
+
+  .edit-label {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-bottom: -0.25rem;
   }
 
   .edit-actions {

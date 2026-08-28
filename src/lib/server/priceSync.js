@@ -176,7 +176,19 @@ export async function loadPriceResolver() {
     return any.length ? Math.min(...any) : null;
   }
 
-  return { resolve };
+  // Distinct set names that have price data for a given card (sorted by release order)
+  const SET_ORDER = ['Alpha', 'Beta', 'Arthurian Legends', 'Arthurian Legends Promo', 'Dragonlord', 'Gothic', 'Dust Reward Promos'];
+  function setsForCard(cardId) {
+    const cardRows = byCard[cardId] || [];
+    const names = [...new Set(cardRows.map((r) => r.set_name))];
+    return names.sort((a, b) => {
+      const ai = SET_ORDER.indexOf(a);
+      const bi = SET_ORDER.indexOf(b);
+      return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+    });
+  }
+
+  return { resolve, setsForCard };
 }
 
 export async function getMeta(key) {

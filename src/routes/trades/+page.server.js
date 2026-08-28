@@ -18,7 +18,7 @@ export async function load({ locals }) {
     .where(eq(trades.user_id, session.user.id))
     .orderBy(desc(trades.created_at));
 
-  const { resolve } = await loadPriceResolver();
+  const { resolve, setsForCard } = await loadPriceResolver();
 
   const enriched = [];
   for (const trade of userTrades) {
@@ -31,6 +31,7 @@ export async function load({ locals }) {
       enriched.push({
         ...trade,
         price,
+        availableSets: setsForCard(trade.card_id),
         card: { ...card, image_url: img?.image_url || null }
       });
     }

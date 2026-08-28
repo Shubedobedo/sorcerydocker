@@ -34,7 +34,7 @@ export async function PATCH({ locals, request }) {
   const session = await locals.auth();
   if (!session?.user) return json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { id, location, expected_value, status, foil } = await request.json();
+  const { id, location, expected_value, status, foil, set_name } = await request.json();
 
   if (!id) return json({ error: 'id is required' }, { status: 400 });
 
@@ -48,6 +48,7 @@ export async function PATCH({ locals, request }) {
   if (location !== undefined) updates.location = location;
   if (expected_value !== undefined) updates.expected_value = expected_value;
   if (foil !== undefined) updates.foil = foil ? 1 : 0;
+  if (set_name !== undefined) updates.set_name = set_name;
 
   if (status === 'traded') {
     updates.status = 'archived';
