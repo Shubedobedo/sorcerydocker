@@ -465,7 +465,7 @@
 
     <div class="panel-section">
       <h3>Import CSV</h3>
-      <p class="panel-hint">Upload a CSV file with card_id and quantity columns.</p>
+      <p class="panel-hint">Upload a Curiosa-format CSV (card name, set, finish, product, quantity, notes).</p>
       <input type="file" accept=".csv" class="file-input" id="csv-upload"
         onchange={handleFileUpload} />
       <label for="csv-upload" class="btn btn-primary">Upload CSV</label>
