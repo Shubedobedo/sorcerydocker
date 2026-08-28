@@ -1,5 +1,5 @@
 import { db } from '$lib/db/index.js';
-import { cards, collections } from '$lib/db/schema.js';
+import { cards, collections, sets } from '$lib/db/schema.js';
 import { eq } from 'drizzle-orm';
 
 // Quote a CSV field if it contains a comma, quote, or newline
@@ -20,30 +20,49 @@ export async function GET({ locals, url }) {
 
   const setFilter = url.searchParams.get('set') || '';
 
-  // Get the user's collection
+  // Get the user's collection, indexed by card_id -> total quantity
   const userCollection = await db.select().from(collections)
     .where(eq(collections.user_id, session.user.id));
-
-  // Enrich with card names
-  const rows = [];
+  const ownedByCard = {};
   for (const item of userCollection) {
-    const card = await db.query.cards.findFirst({ where: eq(cards.id, item.card_id) });
-    if (!card) continue;
+    ownedByCard[item.card_id] = (ownedByCard[item.card_id] || 0) + item.quantity;
+  }
 
-    // Optional set filter (match against the collection entry's set)
-    if (setFilter) {
+  const rows = [];
+
+  if (setFilter) {
+    // Resolve the display name for the selected set
+    const setRow = await db.query.sets.findFirst({ where: eq(sets.id, setFilter) });
+    const setDisplayName = setRow?.name || setFilter;
+
+    // Set export = full checklist: every card in the set, quantity 0 if not owned
+    const allCards = await db.select().from(cards);
+    for (const card of allCards) {
       const setIds = JSON.parse(card.set_ids || '[]');
-      const matchesSet = item.set_id === setFilter || setIds.includes(setFilter);
-      if (!matchesSet) continue;
-    }
+      const inSet = card.set_id === setFilter || setIds.includes(setFilter);
+      if (!inSet) continue;
 
-    rows.push({
-      name: card.name,
-      set: item.set_name || card.set_name || '',
-      finish: 'Standard',
-      product: 'Booster',
-      quantity: item.quantity
-    });
+      rows.push({
+        name: card.name,
+        set: setDisplayName,
+        finish: 'Standard',
+        product: 'Booster',
+        quantity: ownedByCard[card.id] || 0
+      });
+    }
+  } else {
+    // All export = only owned cards, one row per collection entry
+    for (const item of userCollection) {
+      const card = await db.query.cards.findFirst({ where: eq(cards.id, item.card_id) });
+      if (!card) continue;
+      rows.push({
+        name: card.name,
+        set: item.set_name || card.set_name || '',
+        finish: 'Standard',
+        product: 'Booster',
+        quantity: item.quantity
+      });
+    }
   }
 
   // Sort by name
