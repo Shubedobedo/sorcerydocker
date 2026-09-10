@@ -9,3 +9,8 @@ data/
 
 # Personal Claude Code overrides (.claude/settings.json IS committed)
 .claude/settings.local.json
+
+# Playwright
+test-results/
+playwright-report/
+.playwright-mcp/

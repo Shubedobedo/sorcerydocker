@@ -1,7 +1,16 @@
 <script>
-  import { goto, replaceState } from '$app/navigation';
+  import { goto, replaceState, afterNavigate } from '$app/navigation';
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
+
+  // Shallow routing needs SvelteKit's client router, which isn't initialized
+  // until the first navigation finishes. Effects can flush before that during
+  // hydration, and replaceState() throws if it gets there first — so gate on
+  // afterNavigate, which fires once the initial navigation has completed.
+  let routerReady = $state(false);
+  afterNavigate(() => {
+    routerReady = true;
+  });
 
   let { data } = $props();
 
@@ -90,6 +99,11 @@
     if (completion) params.set('completion', completion);
 
     const newUrl = params.toString() ? `/collection?${params.toString()}` : '/collection';
+
+    // `filters` is read above so this effect still tracks it while the router
+    // is coming up; the sync then runs on the first pass after it's ready.
+    if (!routerReady) return;
+    if (newUrl === location.pathname + location.search) return;
     replaceState(newUrl, {});
   });
 
