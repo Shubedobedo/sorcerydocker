@@ -448,35 +448,6 @@
     text-transform: uppercase;
   }
 
-  .list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-    max-height: 500px;
-    overflow-y: auto;
-  }
-  .list-row {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.3rem 0.5rem;
-    font-size: 0.85rem;
-    border-radius: var(--radius-sm);
-  }
-  .list-row:hover {
-    background-color: var(--color-bg-tertiary);
-  }
-  .qty {
-    color: var(--color-text-muted);
-    font-weight: 600;
-    min-width: 25px;
-  }
-  .value {
-    margin-left: auto;
-    font-size: 0.75rem;
-    color: var(--color-accent);
-  }
-
   .not-shared {
     color: var(--color-text-muted);
     font-size: 0.9rem;
@@ -608,10 +579,6 @@
     color: var(--color-primary-hover);
   }
   .trade-meta {
-    font-size: 0.8rem;
-    color: var(--color-text-muted);
-  }
-  .trade-detail {
     font-size: 0.8rem;
     color: var(--color-text-muted);
   }
