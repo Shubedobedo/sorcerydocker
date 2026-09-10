@@ -1,21 +1,27 @@
 <script>
   import { goto } from '$app/navigation';
+  import { untrack } from 'svelte';
 
   let { data } = $props();
 
-  let settings = $state({
-    sets: data.cube.settings.sets || [],
-    elements: data.cube.settings.elements || [],
-    cubeSize: data.cube.settings.cubeSize || 360,
-    includeAvatars: data.cube.settings.includeAvatars || false,
-    includeAllAvatars: data.cube.settings.includeAllAvatars || false,
-    rarities: data.cube.settings.rarities || {
-      Ordinary: { enabled: true, max: 4 },
-      Exceptional: { enabled: true, max: 3 },
-      Elite: { enabled: true, max: 2 },
-      Unique: { enabled: true, max: 1 }
-    }
-  });
+  // The edit form binds into this object, so it needs a writable $state proxy
+  // rather than a $derived. `untrack` marks the read of `data` as the deliberate
+  // one-time seed it is — unsaved edits must not be clobbered by a reload.
+  let settings = $state(
+    untrack(() => ({
+      sets: data.cube.settings.sets || [],
+      elements: data.cube.settings.elements || [],
+      cubeSize: data.cube.settings.cubeSize || 360,
+      includeAvatars: data.cube.settings.includeAvatars || false,
+      includeAllAvatars: data.cube.settings.includeAllAvatars || false,
+      rarities: data.cube.settings.rarities || {
+        Ordinary: { enabled: true, max: 4 },
+        Exceptional: { enabled: true, max: 3 },
+        Elite: { enabled: true, max: 2 },
+        Unique: { enabled: true, max: 1 }
+      }
+    }))
+  );
 
   let generating = $state(false);
   let genResult = $state('');

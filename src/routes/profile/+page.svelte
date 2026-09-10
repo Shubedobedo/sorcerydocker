@@ -1,8 +1,14 @@
 <script>
+  import { untrack } from 'svelte';
+
   let { data } = $props();
 
-  let editName = $state(data.user?.name || '');
-  let editImage = $state(data.user?.image || '');
+  // Form fields the user edits, so they need a writable $state rather than a
+  // $derived (bind:value can't target a derived). `untrack` marks the read of
+  // `data` as the deliberate one-time seed it is — the form should not be
+  // overwritten underneath someone who is mid-edit.
+  let editName = $state(untrack(() => data.user?.name || ''));
+  let editImage = $state(untrack(() => data.user?.image || ''));
   let saving = $state(false);
   let toast = $state('');
 
@@ -227,11 +233,6 @@
     font-size: 0.7rem;
     color: var(--color-text-muted);
     text-transform: uppercase;
-  }
-
-  .btn-sm {
-    padding: 0.3rem 0.6rem;
-    font-size: 0.75rem;
   }
 
   .toast {

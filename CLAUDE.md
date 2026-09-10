@@ -40,9 +40,11 @@ npm run dev:login      # mint an Auth.js session cookie to skip the Google login
   test-only auth bypass to `hooks.server.js`**; minting a real cookie is the supported path.
 
 - **Verifying a change**: there is no type checking. `npm run build` is the only check
-  that a change compiles — run it after editing `.svelte` or `.js` files — and
-  `npm test` covers the `/cards` browser flows. Beyond that, verification means
-  running the app.
+  that a change compiles — run it after editing `.svelte` or `.js` files — and `npm test`
+  covers the card database plus the signed-in pages. `npm run build` also surfaces Svelte
+  compiler warnings, which are worth reading rather than ignoring: the
+  `state_referenced_locally` warnings flagged real stale-state bugs. Beyond that,
+  verification means running the app.
 - Prettier is configured (`.prettierrc`: 2-space, single quotes, no trailing commas,
   100 cols). `.gitattributes` forces LF line endings — the repo is developed on Windows
   with `core.autocrlf=true`, and without it every checkout would leave `prettier --check`
@@ -76,11 +78,13 @@ npm run dev:login      # mint an Auth.js session cookie to skip the Google login
     live price sync instead of burning the daily quota.
   - Use **`page.request`**, not the standalone `request` fixture, for authenticated API
     calls — the latter has its own cookie jar and will get a 401.
-  - **Gotcha**: the filter controls are plain inputs with `on*` handlers — no `<form>`,
-    no `action` — so they do nothing until hydration, and `bind:value` re-applies the
-    server value over anything typed before then. The `search()` helper in
-    `tests/cards.spec.js` retries fill-and-submit for exactly this reason; follow that
-    pattern for any new test that types into a filter.
+  - **Gotcha — nothing works before hydration.** Every control is JS-driven: buttons
+    with `onclick`, inputs with `onkeydown`, no `<form>` and no `action` anywhere. A
+    click or keypress before hydration does nothing _silently_ — no handler, no request,
+    no error — so a test that skips the wait fails looking like a broken feature.
+    Use `gotoHydrated()` from `tests/helpers/hydration.js` for anything that clicks, and
+    the `search()` helper in `tests/cards.spec.js` for filter inputs (it also retries
+    because `bind:value` re-applies the server value over anything typed pre-hydration).
   - On Windows an aborted run can orphan a `vite dev` child that keeps holding
     `data/e2e.db`; the next run then fails on `EBUSY`. Kill the stray process.
 - Node with `engine-strict=true` (`.npmrc`); `better-sqlite3` is a native module, so
@@ -98,11 +102,12 @@ rather than relying on older training knowledge. On first use Claude Code will p
 to approve the project-scoped server.
 
 The Playwright MCP server is also available (installed as a user-scope plugin, not via
-`.mcp.json`). Since there are no tests, driving the dev server in a real browser is the
-main way to verify UI behaviour beyond `npm run build` — `/cards` is a good target
-because its `load` calls `locals.auth()` but never redirects, so it renders fine while
-signed out. Its tool calls are executed live against a browser session and are **not
-saved as replayable scripts**; each run has to be re-driven by hand.
+`.mcp.json`). It complements `npm test`: the suite covers known flows, while the MCP
+tools are for exploring behaviour interactively — especially against the **real**
+database, where bugs live that the seeded test database does not reproduce. Pair it with
+`npm run dev:login` to browse signed in. Its tool calls execute live against a browser
+session and are **not saved as replayable scripts**; each run has to be re-driven by hand,
+so anything worth keeping belongs in `./tests`.
 
 - **Write every Playwright artifact under `.playwright-mcp/`** — pass an explicit
   `filename` like `.playwright-mcp/foo.png` for screenshots rather than a bare name,

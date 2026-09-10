@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { signIn, USERS } from './helpers/auth.js';
+import { gotoHydrated } from './helpers/hydration.js';
 
 const errorsFor = new WeakMap();
 
@@ -109,5 +110,36 @@ test.describe('signed in as an admin', () => {
     const res = await page.goto('/admin');
     expect(res.status()).toBeLessThan(400);
     await expect(page).toHaveURL(/\/admin$/);
+  });
+});
+
+test.describe('collection quantity controls', () => {
+  test.beforeEach(async ({ context }) => {
+    await signIn(context, 'member');
+  });
+
+  // `collection` is $derived(data.collection), and these buttons work by
+  // reassigning it optimistically. This guards that override: if the derived
+  // recomputed over the top, the displayed quantity would snap back.
+  test('+ and - update a card quantity optimistically and persist', async ({ page }) => {
+    await gotoHydrated(page, '/collection');
+
+    const card = page.locator('.collection-card').first();
+    const qty = card.locator('.qty').first();
+    await expect(qty).toBeVisible();
+    const start = Number(await qty.textContent());
+
+    await card.locator('.qty-btn').nth(1).click(); // "+"
+    await expect(qty).toHaveText(String(start + 1));
+
+    // A reload proves it reached the server rather than only the local override.
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    const after = page.locator('.collection-card').first().locator('.qty').first();
+    await expect(after).toHaveText(String(start + 1));
+
+    // Put it back so the row is unchanged for other specs.
+    await page.locator('.collection-card').first().locator('.qty-btn').first().click(); // "-"
+    await expect(after).toHaveText(String(start));
   });
 });

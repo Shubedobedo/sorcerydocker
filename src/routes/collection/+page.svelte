@@ -14,8 +14,12 @@
 
   let { data } = $props();
 
-  let collection = $state([...data.collection]);
-  let missingCards = $state([...(data.missingCards || [])]);
+  // Derived from the load function, but reassigned by the optimistic updates in
+  // updateQuantity()/removeItem(). Reassignment overrides a derived until its
+  // dependency changes, so a reload (CSV import, invalidateAll) resets both back
+  // to the server's version without a syncing $effect.
+  let collection = $derived(data.collection);
+  let missingCards = $derived(data.missingCards || []);
   let totalCards = $derived(collection.reduce((sum, item) => sum + item.quantity, 0));
   let uniqueCards = $derived(collection.length);
 
@@ -213,11 +217,6 @@
       importResult = '';
     }, 5000);
   }
-
-  $effect(() => {
-    collection = [...data.collection];
-    missingCards = [...(data.missingCards || [])];
-  });
 
   async function updateQuantity(item, newQty) {
     const res = await fetch('/api/collection', {
