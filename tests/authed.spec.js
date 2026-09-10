@@ -3,6 +3,17 @@ import { signIn, USERS } from './helpers/auth.js';
 import { gotoHydrated } from './helpers/hydration.js';
 
 const errorsFor = new WeakMap();
+const allowedFor = new WeakMap();
+
+/**
+ * Declares a console error this test expects, so the blanket assertion below
+ * doesn't fail on it. Use sparingly and always with a narrow substring — a test
+ * that asserts a 4xx response necessarily produces a failed-resource error, but
+ * anything broader would blind the check that has already caught real bugs.
+ */
+function allowConsoleError(page, substring) {
+  allowedFor.set(page, [...(allowedFor.get(page) ?? []), substring]);
+}
 
 test.beforeEach(async ({ page }) => {
   const errors = [];
@@ -12,7 +23,10 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.afterEach(async ({ page }) => {
-  const errors = errorsFor.get(page) ?? [];
+  const allowed = allowedFor.get(page) ?? [];
+  const errors = (errorsFor.get(page) ?? []).filter(
+    (e) => !allowed.some((substring) => e.includes(substring))
+  );
   expect(errors, `console errors:\n${errors.join('\n')}`).toEqual([]);
 });
 
@@ -173,5 +187,29 @@ test.describe('trade modal dismissal', () => {
     await expect(modal).toBeVisible();
     await overlay.click({ position: { x: 5, y: 5 } });
     await expect(overlay).toHaveCount(0);
+  });
+});
+
+// Friendship rows are one-directional and carry their own share flags. The seed
+// gives member -> admin `share_collection = 1` and admin -> member nothing, so
+// these two specs pin both halves: sharing grants access, and the absence of a
+// share on the OWNER's row refuses it. Testing only the allowed direction would
+// pass even if the check were skipped entirely.
+test.describe('friend sharing is one-directional', () => {
+  test('a friend who was granted access can view the collection', async ({ page, context }) => {
+    await signIn(context, 'admin');
+
+    const res = await page.goto(`/collection/${USERS.member.id}`);
+    expect(res.status()).toBe(200);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(USERS.member.name);
+  });
+
+  test('a friend who was not granted access is refused', async ({ page, context }) => {
+    await signIn(context, 'member');
+    // The 403 response is the assertion; the browser logs it as a failed resource.
+    allowConsoleError(page, 'status of 403');
+
+    const res = await page.goto(`/collection/${USERS.admin.id}`);
+    expect(res.status()).toBe(403);
   });
 });
