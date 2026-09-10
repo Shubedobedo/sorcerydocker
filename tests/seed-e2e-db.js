@@ -56,7 +56,16 @@ export default function seed() {
 
   // Start from a clean slate: no real users, decks, collections or trades, so
   // the specs only ever see rows they created themselves.
-  for (const table of ['deck_cards', 'decks', 'collections', 'cube_cards', 'cubes', 'trades']) {
+  for (const table of [
+    'deck_cards',
+    'decks',
+    'collections',
+    'cube_cards',
+    'cubes',
+    'trades',
+    'friend_requests',
+    'friendships'
+  ]) {
     try {
       target.exec(`DELETE FROM ${table}`);
     } catch {
@@ -83,6 +92,7 @@ export default function seed() {
   }
 
   const owned = seedCollection(target, USERS.member.id);
+  seedFriendship(target);
 
   target.close();
   console.log(
@@ -138,6 +148,27 @@ function seedCollection(target, userId) {
   });
 
   return insertAll(cards);
+}
+
+/**
+ * Befriends the two test users asymmetrically.
+ *
+ * Friendship rows are one-directional and carry their own share flags, so the
+ * member sharing with the admin says nothing about the reverse. Seeding only one
+ * direction is what lets the specs prove a viewer is refused when the *owner*
+ * has not shared — the case that would silently pass if both rows were open.
+ */
+function seedFriendship(target) {
+  const insert = target.prepare(
+    `INSERT INTO friendships
+       (user_id, friend_id, share_decks, share_cubes, share_collection, share_trades, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  );
+  const now = new Date().toISOString();
+  // member -> admin: collection and trades shared.
+  insert.run(USERS.member.id, USERS.admin.id, 0, 0, 1, 1, now);
+  // admin -> member: friends, but nothing shared back.
+  insert.run(USERS.admin.id, USERS.member.id, 0, 0, 0, 0, now);
 }
 
 // Executed directly by playwright.config.js's webServer command.

@@ -78,6 +78,13 @@ npm run dev:login      # mint an Auth.js session cookie to skip the Google login
     live price sync instead of burning the daily quota.
   - Use **`page.request`**, not the standalone `request` fixture, for authenticated API
     calls — the latter has its own cookie jar and will get a 401.
+  - The seed also creates an **asymmetric friendship**: member → admin shares collection
+    and trades, admin → member shares nothing. Keep it that way — testing only the
+    permitted direction would pass even if the ownership check were skipped entirely.
+  - Every spec fails on any console error. When a test legitimately produces one (a spec
+    asserting a 403 makes the browser log a failed resource), declare it with
+    `allowConsoleError(page, '<narrow substring>')` rather than weakening the assertion;
+    that check has already caught real bugs.
   - **Gotcha — nothing works before hydration.** Every control is JS-driven: buttons
     with `onclick`, inputs with `onkeydown`, no `<form>` and no `action` anywhere. A
     click or keypress before hydration does nothing _silently_ — no handler, no request,
