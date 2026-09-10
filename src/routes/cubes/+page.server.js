@@ -23,11 +23,15 @@ export async function load({ locals }) {
       .orderBy(desc(cubes.updated_at));
 
     // Get friends' cubes set to "friends" visibility
-    const sharingFriends = await db.select().from(friendships)
+    const sharingFriends = await db
+      .select()
+      .from(friendships)
       .where(eq(friendships.friend_id, session.user.id));
 
     for (const f of sharingFriends) {
-      const fCubes = await db.select().from(cubes)
+      const fCubes = await db
+        .select()
+        .from(cubes)
         .where(and(eq(cubes.user_id, f.user_id), eq(cubes.visibility, 'friends')))
         .orderBy(desc(cubes.updated_at));
       const friend = await db.query.users.findFirst({ where: eq(users.id, f.user_id) });

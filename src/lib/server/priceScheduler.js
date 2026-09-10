@@ -37,8 +37,12 @@ export function startPriceScheduler() {
   started = true;
 
   // Run an initial check shortly after boot (delay so startup isn't blocked)
-  setTimeout(() => { maybeSync(); }, 30 * 1000);
+  setTimeout(() => {
+    maybeSync();
+  }, 30 * 1000);
 
   // Then re-check periodically
-  setInterval(() => { maybeSync(); }, CHECK_INTERVAL_MS);
+  setInterval(() => {
+    maybeSync();
+  }, CHECK_INTERVAL_MS);
 }

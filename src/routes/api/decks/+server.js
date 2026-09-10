@@ -18,20 +18,26 @@ export async function POST({ locals, request }) {
     return json({ error: 'cube_id is required for cube format' }, { status: 400 });
   }
 
-  const slug = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '') + '-' + Date.now().toString(36);
+  const slug =
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') +
+    '-' +
+    Date.now().toString(36);
 
-  const [deck] = await db.insert(decks).values({
-    user_id: session.user.id,
-    name: name.trim(),
-    description: description || null,
-    format: format || 'standard',
-    tags: tags ? JSON.stringify(tags) : null,
-    cube_id: format === 'cube' ? cube_id : null,
-    slug
-  }).returning();
+  const [deck] = await db
+    .insert(decks)
+    .values({
+      user_id: session.user.id,
+      name: name.trim(),
+      description: description || null,
+      format: format || 'standard',
+      tags: tags ? JSON.stringify(tags) : null,
+      cube_id: format === 'cube' ? cube_id : null,
+      slug
+    })
+    .returning();
 
   return json(deck, { status: 201 });
 }

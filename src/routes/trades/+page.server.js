@@ -40,7 +40,10 @@ export async function load({ locals }) {
   const available = enriched.filter((t) => t.status === 'available');
   const archived = enriched.filter((t) => t.status === 'archived');
 
-  const availableValue = available.reduce((sum, t) => sum + (t.price != null ? t.price * t.quantity : 0), 0);
+  const availableValue = available.reduce(
+    (sum, t) => sum + (t.price != null ? t.price * t.quantity : 0),
+    0
+  );
 
   return {
     available,

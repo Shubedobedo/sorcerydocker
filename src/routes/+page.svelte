@@ -76,7 +76,9 @@
     background-color: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
-    transition: border-color 0.2s, transform 0.2s;
+    transition:
+      border-color 0.2s,
+      transform 0.2s;
   }
 
   .feature-card:hover {

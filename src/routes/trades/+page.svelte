@@ -53,11 +53,16 @@
       result = result.filter((t) => {
         if (t.price == null) return false;
         switch (filters.price) {
-          case 'under1': return t.price < 1;
-          case '1to5': return t.price >= 1 && t.price < 5;
-          case '5to20': return t.price >= 5 && t.price < 20;
-          case '20plus': return t.price >= 20;
-          default: return true;
+          case 'under1':
+            return t.price < 1;
+          case '1to5':
+            return t.price >= 1 && t.price < 5;
+          case '5to20':
+            return t.price >= 5 && t.price < 20;
+          case '20plus':
+            return t.price >= 20;
+          default:
+            return true;
         }
       });
     }
@@ -83,7 +88,9 @@
 
   function showToast(message) {
     toast = message;
-    setTimeout(() => { toast = ''; }, 3000);
+    setTimeout(() => {
+      toast = '';
+    }, 3000);
   }
 
   function showConfirm(title, message, onConfirm) {
@@ -101,7 +108,12 @@
     await fetch('/api/trades', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, location: editLocation, expected_value: editValue, set_name: editSet })
+      body: JSON.stringify({
+        id,
+        location: editLocation,
+        expected_value: editValue,
+        set_name: editSet
+      })
     });
     editingId = null;
     showToast('Trade details saved');
@@ -131,42 +143,50 @@
   }
 
   async function undoTrade(trade) {
-    showConfirm('Undo Trade', 'The card will be added back to your collection and returned to your trade binder.', async () => {
-      await fetch('/api/collection', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          card_id: trade.card_id,
-          set_id: trade.set_id,
-          set_name: trade.set_name,
-          quantity: trade.quantity,
-          add: true
-        })
-      });
+    showConfirm(
+      'Undo Trade',
+      'The card will be added back to your collection and returned to your trade binder.',
+      async () => {
+        await fetch('/api/collection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            card_id: trade.card_id,
+            set_id: trade.set_id,
+            set_name: trade.set_name,
+            quantity: trade.quantity,
+            add: true
+          })
+        });
 
-      await fetch('/api/trades', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: trade.id, status: 'available' })
-      });
+        await fetch('/api/trades', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: trade.id, status: 'available' })
+        });
 
-      confirmModal = null;
-      showToast('Trade undone — card returned to collection');
-      window.location.reload();
-    });
+        confirmModal = null;
+        showToast('Trade undone — card returned to collection');
+        window.location.reload();
+      }
+    );
   }
 
   async function removeTrade(id) {
-    showConfirm('Remove from Trade Binder', 'This will remove the card from your trade binder without affecting your collection.', async () => {
-      await fetch('/api/trades', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
-      });
-      confirmModal = null;
-      showToast('Removed from trade binder');
-      window.location.reload();
-    });
+    showConfirm(
+      'Remove from Trade Binder',
+      'This will remove the card from your trade binder without affecting your collection.',
+      async () => {
+        await fetch('/api/trades', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id })
+        });
+        confirmModal = null;
+        showToast('Removed from trade binder');
+        window.location.reload();
+      }
+    );
   }
 </script>
 
@@ -179,7 +199,9 @@
 
   <section class="trade-section">
     <h2>
-      Available for Trade ({filteredAvailable().length}{#if filteredAvailable().length !== data.available.length} of {data.available.length}{/if})
+      Available for Trade ({filteredAvailable()
+        .length}{#if filteredAvailable().length !== data.available.length}
+        of {data.available.length}{/if})
       {#if filteredValue > 0}
         <span class="section-value">&middot; ${filteredValue.toFixed(2)} market value</span>
       {/if}
@@ -194,13 +216,36 @@
           bind:value={filters.q}
         />
         <div class="segmented-control">
-          <button class="seg-btn" class:active={filters.foil === ''} onclick={() => { filters.foil = ''; }}>All</button>
-          <button class="seg-btn" class:active={filters.foil === 'nonfoil'} onclick={() => { filters.foil = 'nonfoil'; }}>Non-Foil</button>
-          <button class="seg-btn" class:active={filters.foil === 'foil'} onclick={() => { filters.foil = 'foil'; }}>Foil</button>
+          <button
+            class="seg-btn"
+            class:active={filters.foil === ''}
+            onclick={() => {
+              filters.foil = '';
+            }}>All</button
+          >
+          <button
+            class="seg-btn"
+            class:active={filters.foil === 'nonfoil'}
+            onclick={() => {
+              filters.foil = 'nonfoil';
+            }}>Non-Foil</button
+          >
+          <button
+            class="seg-btn"
+            class:active={filters.foil === 'foil'}
+            onclick={() => {
+              filters.foil = 'foil';
+            }}>Foil</button
+          >
         </div>
         {#if availableSetOptions().length > 1}
           <div class="multi-select">
-            <button class="multi-select-trigger" onclick={() => { openSetDropdown = !openSetDropdown; }}>
+            <button
+              class="multi-select-trigger"
+              onclick={() => {
+                openSetDropdown = !openSetDropdown;
+              }}
+            >
               {setDropdownLabel()}
               <span class="caret">&#9662;</span>
             </button>
@@ -208,7 +253,11 @@
               <div class="multi-select-dropdown">
                 {#each availableSetOptions() as setName}
                   <label class="checkbox-item">
-                    <input type="checkbox" checked={filters.sets.includes(setName)} onchange={() => toggleSet(setName)} />
+                    <input
+                      type="checkbox"
+                      checked={filters.sets.includes(setName)}
+                      onchange={() => toggleSet(setName)}
+                    />
                     <span>{setName}</span>
                   </label>
                 {/each}
@@ -217,11 +266,41 @@
           </div>
         {/if}
         <div class="segmented-control">
-          <button class="seg-btn" class:active={filters.price === ''} onclick={() => { filters.price = ''; }}>All</button>
-          <button class="seg-btn" class:active={filters.price === 'under1'} onclick={() => { filters.price = 'under1'; }}>&lt; $1</button>
-          <button class="seg-btn" class:active={filters.price === '1to5'} onclick={() => { filters.price = '1to5'; }}>$1&ndash;5</button>
-          <button class="seg-btn" class:active={filters.price === '5to20'} onclick={() => { filters.price = '5to20'; }}>$5&ndash;20</button>
-          <button class="seg-btn" class:active={filters.price === '20plus'} onclick={() => { filters.price = '20plus'; }}>$20+</button>
+          <button
+            class="seg-btn"
+            class:active={filters.price === ''}
+            onclick={() => {
+              filters.price = '';
+            }}>All</button
+          >
+          <button
+            class="seg-btn"
+            class:active={filters.price === 'under1'}
+            onclick={() => {
+              filters.price = 'under1';
+            }}>&lt; $1</button
+          >
+          <button
+            class="seg-btn"
+            class:active={filters.price === '1to5'}
+            onclick={() => {
+              filters.price = '1to5';
+            }}>$1&ndash;5</button
+          >
+          <button
+            class="seg-btn"
+            class:active={filters.price === '5to20'}
+            onclick={() => {
+              filters.price = '5to20';
+            }}>$5&ndash;20</button
+          >
+          <button
+            class="seg-btn"
+            class:active={filters.price === '20plus'}
+            onclick={() => {
+              filters.price = '20plus';
+            }}>$20+</button
+          >
         </div>
         <button class="btn btn-secondary btn-sm" onclick={clearFilters}>Clear</button>
       </div>
@@ -244,9 +323,15 @@
                 {trade.card.name}
                 {#if trade.foil}<span class="foil-badge">FOIL</span>{/if}
               </a>
-              <span class="trade-meta">{trade.quantity}x &middot; {trade.set_name || trade.card.set_name}</span>
+              <span class="trade-meta"
+                >{trade.quantity}x &middot; {trade.set_name || trade.card.set_name}</span
+              >
               {#if trade.price != null}
-                <span class="trade-market">Market: ${trade.price.toFixed(2)}{#if trade.quantity > 1} &middot; ${(trade.price * trade.quantity).toFixed(2)} total{/if}{#if trade.foil} (foil){/if}</span>
+                <span class="trade-market"
+                  >Market: ${trade.price.toFixed(2)}{#if trade.quantity > 1}
+                    &middot; ${(trade.price * trade.quantity).toFixed(2)} total{/if}{#if trade.foil}
+                    (foil){/if}</span
+                >
               {/if}
 
               {#if editingId === trade.id}
@@ -259,11 +344,26 @@
                       {/each}
                     </select>
                   {/if}
-                  <input class="input" placeholder="Location (e.g. Binder 2, Page 6)" bind:value={editLocation} />
-                  <input class="input" placeholder="Expected value (e.g. $25)" bind:value={editValue} />
+                  <input
+                    class="input"
+                    placeholder="Location (e.g. Binder 2, Page 6)"
+                    bind:value={editLocation}
+                  />
+                  <input
+                    class="input"
+                    placeholder="Expected value (e.g. $25)"
+                    bind:value={editValue}
+                  />
                   <div class="edit-actions">
-                    <button class="btn btn-primary btn-sm" onclick={() => saveEdit(trade.id)}>Save</button>
-                    <button class="btn btn-secondary btn-sm" onclick={() => { editingId = null; }}>Cancel</button>
+                    <button class="btn btn-primary btn-sm" onclick={() => saveEdit(trade.id)}
+                      >Save</button
+                    >
+                    <button
+                      class="btn btn-secondary btn-sm"
+                      onclick={() => {
+                        editingId = null;
+                      }}>Cancel</button
+                    >
                   </div>
                 </div>
               {:else}
@@ -275,12 +375,22 @@
                 {/if}
 
                 <div class="trade-actions">
-                  <button class="btn btn-secondary btn-sm" onclick={() => startEdit(trade)}>Edit</button>
-                  <button class="btn btn-secondary btn-sm" class:foil-active={trade.foil} onclick={() => toggleFoil(trade)}>
+                  <button class="btn btn-secondary btn-sm" onclick={() => startEdit(trade)}
+                    >Edit</button
+                  >
+                  <button
+                    class="btn btn-secondary btn-sm"
+                    class:foil-active={trade.foil}
+                    onclick={() => toggleFoil(trade)}
+                  >
                     {trade.foil ? '✦ Foil' : 'Mark Foil'}
                   </button>
-                  <button class="btn btn-primary btn-sm" onclick={() => markTraded(trade.id)}>Mark Traded</button>
-                  <button class="btn btn-danger btn-sm" onclick={() => removeTrade(trade.id)}>Remove</button>
+                  <button class="btn btn-primary btn-sm" onclick={() => markTraded(trade.id)}
+                    >Mark Traded</button
+                  >
+                  <button class="btn btn-danger btn-sm" onclick={() => removeTrade(trade.id)}
+                    >Remove</button
+                  >
                 </div>
               {/if}
             </div>
@@ -290,7 +400,9 @@
     {:else if data.available.length > 0}
       <p class="empty">No trades match your filters.</p>
     {:else}
-      <p class="empty">No cards marked for trade. Go to your <a href="/collection">collection</a> to mark cards.</p>
+      <p class="empty">
+        No cards marked for trade. Go to your <a href="/collection">collection</a> to mark cards.
+      </p>
     {/if}
   </section>
 
@@ -304,13 +416,16 @@
               <span class="trade-name">{trade.card.name}</span>
               <span class="trade-meta">
                 {trade.quantity}x &middot; {trade.set_name || trade.card.set_name}
-                {#if trade.traded_at} &middot; Traded {new Date(trade.traded_at).toLocaleDateString()}{/if}
+                {#if trade.traded_at}
+                  &middot; Traded {new Date(trade.traded_at).toLocaleDateString()}{/if}
               </span>
               {#if trade.expected_value}
                 <span class="trade-detail">Value: {trade.expected_value}</span>
               {/if}
               <div class="trade-actions">
-                <button class="btn btn-secondary btn-sm" onclick={() => undoTrade(trade)}>Undo</button>
+                <button class="btn btn-secondary btn-sm" onclick={() => undoTrade(trade)}
+                  >Undo</button
+                >
               </div>
             </div>
           </div>
@@ -321,13 +436,23 @@
 </div>
 
 {#if confirmModal}
-  <div class="modal-overlay" onclick={() => { confirmModal = null; }}>
+  <div
+    class="modal-overlay"
+    onclick={() => {
+      confirmModal = null;
+    }}
+  >
     <div class="modal" onclick={(e) => e.stopPropagation()}>
       <h3>{confirmModal.title}</h3>
       <p class="modal-message">{confirmModal.message}</p>
       <div class="modal-actions">
         <button class="btn btn-primary" onclick={confirmModal.onConfirm}>Confirm</button>
-        <button class="btn btn-secondary" onclick={() => { confirmModal = null; }}>Cancel</button>
+        <button
+          class="btn btn-secondary"
+          onclick={() => {
+            confirmModal = null;
+          }}>Cancel</button
+        >
       </div>
     </div>
   </div>
@@ -391,18 +516,72 @@
     white-space: nowrap;
   }
 
-  .seg-btn:last-child { border-right: none; }
-  .seg-btn:hover { background-color: var(--color-bg-tertiary); }
-  .seg-btn.active { background-color: var(--color-primary); color: white; font-weight: 500; }
+  .seg-btn:last-child {
+    border-right: none;
+  }
+  .seg-btn:hover {
+    background-color: var(--color-bg-tertiary);
+  }
+  .seg-btn.active {
+    background-color: var(--color-primary);
+    color: white;
+    font-weight: 500;
+  }
 
-  .multi-select { position: relative; }
-  .multi-select-trigger { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text); font-size: 0.8rem; cursor: pointer; white-space: nowrap; min-width: 110px; }
-  .multi-select-trigger:hover { border-color: var(--color-primary); }
-  .caret { font-size: 0.7rem; color: var(--color-text-muted); margin-left: auto; }
-  .multi-select-dropdown { position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%; background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); z-index: 100; max-height: 240px; overflow-y: auto; padding: 0.25rem 0; }
-  .checkbox-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.75rem; cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
-  .checkbox-item:hover { background-color: var(--color-bg-tertiary); }
-  .checkbox-item input[type="checkbox"] { accent-color: var(--color-primary); }
+  .multi-select {
+    position: relative;
+  }
+  .multi-select-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+    min-width: 110px;
+  }
+  .multi-select-trigger:hover {
+    border-color: var(--color-primary);
+  }
+  .caret {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    margin-left: auto;
+  }
+  .multi-select-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 100%;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 0.25rem 0;
+  }
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  .checkbox-item:hover {
+    background-color: var(--color-bg-tertiary);
+  }
+  .checkbox-item input[type='checkbox'] {
+    accent-color: var(--color-primary);
+  }
 
   .trade-list {
     display: flex;

@@ -217,7 +217,9 @@ sqlite.exec(`
 
 // Migrations for existing databases
 try {
-  sqlite.exec(`ALTER TABLE decks ADD COLUMN cube_id INTEGER REFERENCES cubes(id) ON DELETE SET NULL`);
+  sqlite.exec(
+    `ALTER TABLE decks ADD COLUMN cube_id INTEGER REFERENCES cubes(id) ON DELETE SET NULL`
+  );
 } catch (e) {
   // Column already exists
 }

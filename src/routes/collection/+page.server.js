@@ -22,9 +22,13 @@ function resolvePrice(priceLookup, priceRowsByCard, cardId, setName) {
   if (priceLookup[foilKey] != null) return priceLookup[foilKey];
   // Fallback: cheapest normal price across any set for this card
   const rows = priceRowsByCard[cardId] || [];
-  const normals = rows.filter((r) => r.finish === 'normal' && r.market_price != null).map((r) => parseFloat(r.market_price));
+  const normals = rows
+    .filter((r) => r.finish === 'normal' && r.market_price != null)
+    .map((r) => parseFloat(r.market_price));
   if (normals.length) return Math.min(...normals);
-  const anyPrices = rows.filter((r) => r.market_price != null).map((r) => parseFloat(r.market_price));
+  const anyPrices = rows
+    .filter((r) => r.market_price != null)
+    .map((r) => parseFloat(r.market_price));
   return anyPrices.length ? Math.min(...anyPrices) : null;
 }
 
@@ -95,7 +99,9 @@ export async function load({ locals }) {
   }
 
   // Load trade binder quantities (available trades) for the extra filter
-  const userTrades = await db.select().from(trades)
+  const userTrades = await db
+    .select()
+    .from(trades)
     .where(and(eq(trades.user_id, session.user.id), eq(trades.status, 'available')));
 
   // Build a map of card_id -> total trade quantity

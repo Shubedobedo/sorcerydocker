@@ -20,7 +20,8 @@ export async function load({ url, locals }) {
   const multiTypes = type ? type.split(',').filter(Boolean) : [];
   const multiRarities = rarity ? rarity.split(',').filter(Boolean) : [];
   const multiSets = set ? set.split(',').filter(Boolean) : [];
-  const needsJsFilter = multiTypes.length > 1 || multiRarities.length > 1 || multiSets.length > 1 || element;
+  const needsJsFilter =
+    multiTypes.length > 1 || multiRarities.length > 1 || multiSets.length > 1 || element;
 
   if (q) {
     conditions.push(like(cards.name, `%${q}%`));
@@ -44,10 +45,7 @@ export async function load({ url, locals }) {
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   // Get total count for pagination
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(cards)
-    .where(where);
+  const [{ total }] = await db.select({ total: count() }).from(cards).where(where);
 
   let results = await db
     .select()
@@ -121,12 +119,10 @@ export async function load({ url, locals }) {
 
   // Get first image for each card for the grid
   const cardIds = results.map((c) => c.id);
-  const images = cardIds.length > 0
-    ? await db
-        .select()
-        .from(cardImages)
-        .where(like(cardImages.art_type, 'standard%'))
-    : [];
+  const images =
+    cardIds.length > 0
+      ? await db.select().from(cardImages).where(like(cardImages.art_type, 'standard%'))
+      : [];
 
   // Map first image per card
   const imageMap = {};

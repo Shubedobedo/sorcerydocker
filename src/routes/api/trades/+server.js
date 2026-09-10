@@ -8,23 +8,27 @@ export async function POST({ locals, request }) {
   const session = await locals.auth();
   if (!session?.user) return json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { card_id, set_id, set_name, quantity, location, expected_value, foil } = await request.json();
+  const { card_id, set_id, set_name, quantity, location, expected_value, foil } =
+    await request.json();
 
   if (!card_id) {
     return json({ error: 'card_id is required' }, { status: 400 });
   }
 
   // Create the trade listing
-  const [trade] = await db.insert(trades).values({
-    user_id: session.user.id,
-    card_id,
-    set_id: set_id || null,
-    set_name: set_name || null,
-    quantity: quantity || 1,
-    foil: foil ? 1 : 0,
-    location: location || null,
-    expected_value: expected_value || null
-  }).returning();
+  const [trade] = await db
+    .insert(trades)
+    .values({
+      user_id: session.user.id,
+      card_id,
+      set_id: set_id || null,
+      set_name: set_name || null,
+      quantity: quantity || 1,
+      foil: foil ? 1 : 0,
+      location: location || null,
+      expected_value: expected_value || null
+    })
+    .returning();
 
   return json(trade, { status: 201 });
 }
@@ -70,7 +74,10 @@ export async function PATCH({ locals, request }) {
       if (newQty <= 0) {
         await db.delete(collections).where(eq(collections.id, collEntry.id));
       } else {
-        await db.update(collections).set({ quantity: newQty }).where(eq(collections.id, collEntry.id));
+        await db
+          .update(collections)
+          .set({ quantity: newQty })
+          .where(eq(collections.id, collEntry.id));
       }
     }
   } else if (status !== undefined) {
@@ -91,9 +98,7 @@ export async function DELETE({ locals, request }) {
   if (!session?.user) return json({ error: 'Unauthorized' }, { status: 401 });
 
   const { id } = await request.json();
-  await db.delete(trades).where(
-    and(eq(trades.id, id), eq(trades.user_id, session.user.id))
-  );
+  await db.delete(trades).where(and(eq(trades.id, id), eq(trades.user_id, session.user.id)));
 
   return json({ success: true });
 }

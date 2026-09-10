@@ -15,10 +15,7 @@ export async function load({ params, locals }) {
     throw error(404, 'Card not found');
   }
 
-  const images = await db
-    .select()
-    .from(cardImages)
-    .where(eq(cardImages.card_id, card.id));
+  const images = await db.select().from(cardImages).where(eq(cardImages.card_id, card.id));
 
   // Get user's decks for "Add to Deck" feature
   let userDecks = [];
@@ -40,10 +37,7 @@ export async function load({ params, locals }) {
   }
 
   // Get prices for this card, grouped by set + finish
-  const priceRows = await db
-    .select()
-    .from(cardPrices)
-    .where(eq(cardPrices.card_id, card.id));
+  const priceRows = await db.select().from(cardPrices).where(eq(cardPrices.card_id, card.id));
 
   // Group into { setName: { normal: {...}, foil: {...} } }
   const priceMap = {};
@@ -63,7 +57,15 @@ export async function load({ params, locals }) {
   }
 
   // Order sets by release order (newest sets first is fine, but keep a sensible order)
-  const setOrder = ['Alpha', 'Beta', 'Arthurian Legends', 'Arthurian Legends Promo', 'Dragonlord', 'Gothic', 'Dust Reward Promos'];
+  const setOrder = [
+    'Alpha',
+    'Beta',
+    'Arthurian Legends',
+    'Arthurian Legends Promo',
+    'Dragonlord',
+    'Gothic',
+    'Dust Reward Promos'
+  ];
   const prices = Object.entries(priceMap)
     .map(([setName, finishes]) => ({ setName, finishes }))
     .sort((a, b) => {

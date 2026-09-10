@@ -1,6 +1,14 @@
 import { error } from '@sveltejs/kit';
 import { db } from '$lib/db/index.js';
-import { collections, collectionSettings, cards, cardImages, sets, users, friendships } from '$lib/db/schema.js';
+import {
+  collections,
+  collectionSettings,
+  cards,
+  cardImages,
+  sets,
+  users,
+  friendships
+} from '$lib/db/schema.js';
 import { eq, and, like, asc } from 'drizzle-orm';
 
 /** @type {import('./$types').PageServerLoad} */

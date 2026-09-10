@@ -8,7 +8,9 @@
 
   function showToast(message) {
     toast = message;
-    setTimeout(() => { toast = ''; }, 3000);
+    setTimeout(() => {
+      toast = '';
+    }, 3000);
   }
 
   async function saveProfile() {
@@ -21,7 +23,9 @@
 
     if (res.ok) {
       showToast('Profile updated!');
-      setTimeout(() => { window.location.reload(); }, 1000);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } else {
       showToast('Failed to save');
     }
@@ -53,7 +57,12 @@
 
       <label class="form-field">
         <span>Avatar URL</span>
-        <input type="url" class="input" bind:value={editImage} placeholder="https://example.com/avatar.png" />
+        <input
+          type="url"
+          class="input"
+          bind:value={editImage}
+          placeholder="https://example.com/avatar.png"
+        />
         <span class="hint">Paste an image URL, or leave blank to use your initial</span>
       </label>
 
@@ -71,7 +80,9 @@
       <dt>Role</dt>
       <dd>{data.user?.role}</dd>
       <dt>Joined</dt>
-      <dd>{data.user?.created_at ? new Date(data.user.created_at).toLocaleDateString() : 'Unknown'}</dd>
+      <dd>
+        {data.user?.created_at ? new Date(data.user.created_at).toLocaleDateString() : 'Unknown'}
+      </dd>
     </dl>
   </section>
 
@@ -80,7 +91,10 @@
       <h2>My Decks ({data.decks.length})</h2>
       <ul class="item-list">
         {#each data.decks as deck}
-          <li><a href="/decks/{deck.slug}">{deck.name}</a> <span class="item-meta">{deck.format} · {deck.visibility}</span></li>
+          <li>
+            <a href="/decks/{deck.slug}">{deck.name}</a>
+            <span class="item-meta">{deck.format} · {deck.visibility}</span>
+          </li>
         {/each}
       </ul>
     </section>
@@ -91,7 +105,10 @@
       <h2>My Cubes ({data.cubes.length})</h2>
       <ul class="item-list">
         {#each data.cubes as cube}
-          <li><a href="/cubes/{cube.slug}">{cube.name}</a> <span class="item-meta">{cube.visibility}</span></li>
+          <li>
+            <a href="/cubes/{cube.slug}">{cube.name}</a>
+            <span class="item-meta">{cube.visibility}</span>
+          </li>
         {/each}
       </ul>
     </section>
@@ -108,7 +125,9 @@
     max-width: 700px;
   }
 
-  h1 { margin: 0 0 1.5rem; }
+  h1 {
+    margin: 0 0 1.5rem;
+  }
 
   .profile-section {
     margin-bottom: 2rem;
@@ -210,7 +229,10 @@
     text-transform: uppercase;
   }
 
-  .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+  .btn-sm {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+  }
 
   .toast {
     position: fixed;
@@ -228,7 +250,13 @@
   }
 
   @keyframes toast-in {
-    from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
   }
 </style>

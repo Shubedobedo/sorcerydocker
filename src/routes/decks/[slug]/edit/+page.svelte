@@ -124,7 +124,9 @@
     } else {
       const err = await res.json();
       addError = err.error || 'Failed to add card';
-      setTimeout(() => { addError = ''; }, 4000);
+      setTimeout(() => {
+        addError = '';
+      }, 4000);
     }
   }
 
@@ -151,7 +153,9 @@
     } else {
       const err = await res.json();
       addError = err.error || 'Failed to update quantity';
-      setTimeout(() => { addError = ''; }, 4000);
+      setTimeout(() => {
+        addError = '';
+      }, 4000);
     }
   }
 
@@ -206,7 +210,7 @@
       <input
         type="search"
         class="input"
-        placeholder={isCubeDeck ? "Search cube pool..." : "Search cards..."}
+        placeholder={isCubeDeck ? 'Search cube pool...' : 'Search cards...'}
         bind:value={searchQuery}
         oninput={searchCards}
       />
@@ -224,7 +228,9 @@
                 <span class="result-meta">
                   {card.type} &middot; {card.set_name}
                   {#if isCubeDeck}
-                    &middot; <span class="pool-avail">{remainingForCard(card.id)}/{poolQuantityMap()[card.id]} avail</span>
+                    &middot; <span class="pool-avail"
+                      >{remainingForCard(card.id)}/{poolQuantityMap()[card.id]} avail</span
+                    >
                   {/if}
                 </span>
               </button>
@@ -236,24 +242,39 @@
 
     <main class="deck-panel">
       {#if isCubeDeck}
-        <div class="deck-validation" class:valid={deckComplete()} class:invalid={!atlasValid() || !spellbookValid()}>
+        <div
+          class="deck-validation"
+          class:valid={deckComplete()}
+          class:invalid={!atlasValid() || !spellbookValid()}
+        >
           {#if deckComplete()}
             <span class="validation-icon">&#10003;</span> Deck complete
           {:else if !atlasValid() || !spellbookValid()}
             <span class="validation-icon">&#9888;</span> Deck exceeds limits
           {:else}
-            <span class="validation-icon">&#8226;</span> {atlasCount + spellbookCount}/{(deckLimits()?.atlas || 30) + (deckLimits()?.spellbook || 60)} cards
+            <span class="validation-icon">&#8226;</span>
+            {atlasCount + spellbookCount}/{(deckLimits()?.atlas || 30) +
+              (deckLimits()?.spellbook || 60)} cards
           {/if}
         </div>
       {/if}
 
       <section class="zone">
-        <h2>Atlas <span class="zone-count" class:zone-over={isCubeDeck && !atlasValid()} class:zone-complete={isCubeDeck && atlasCount === deckLimits()?.atlas}>({atlasCount}/{deckLimits()?.atlas || 30})</span></h2>
+        <h2>
+          Atlas <span
+            class="zone-count"
+            class:zone-over={isCubeDeck && !atlasValid()}
+            class:zone-complete={isCubeDeck && atlasCount === deckLimits()?.atlas}
+            >({atlasCount}/{deckLimits()?.atlas || 30})</span
+          >
+        </h2>
         {#if data.atlas.length > 0}
           <div class="card-list">
             {#each Object.entries(atlasByElement) as [element, cards]}
               {#if cards.length > 0}
-                <h4 class="element-subheading element-{element.toLowerCase()}">{element} ({cards.reduce((s, dc) => s + dc.quantity, 0)})</h4>
+                <h4 class="element-subheading element-{element.toLowerCase()}">
+                  {element} ({cards.reduce((s, dc) => s + dc.quantity, 0)})
+                </h4>
                 {#each cards as dc}
                   <div class="deck-card-row">
                     {#if dc.card.image_url}
@@ -264,10 +285,20 @@
                       <span class="deck-card-meta">{dc.card.type || ''}</span>
                     </div>
                     <div class="deck-card-controls">
-                      <button class="qty-btn" onclick={() => changeQuantity(dc.card_id, 'atlas', dc.quantity - 1)}>-</button>
+                      <button
+                        class="qty-btn"
+                        onclick={() => changeQuantity(dc.card_id, 'atlas', dc.quantity - 1)}
+                        >-</button
+                      >
                       <span class="qty">{dc.quantity}</span>
-                      <button class="qty-btn" onclick={() => changeQuantity(dc.card_id, 'atlas', dc.quantity + 1)}>+</button>
-                      <button class="remove-btn" onclick={() => removeCard(dc.card_id, 'atlas')}>&times;</button>
+                      <button
+                        class="qty-btn"
+                        onclick={() => changeQuantity(dc.card_id, 'atlas', dc.quantity + 1)}
+                        >+</button
+                      >
+                      <button class="remove-btn" onclick={() => removeCard(dc.card_id, 'atlas')}
+                        >&times;</button
+                      >
                     </div>
                   </div>
                 {/each}
@@ -280,12 +311,21 @@
       </section>
 
       <section class="zone">
-        <h2>Spellbook <span class="zone-count" class:zone-over={isCubeDeck && !spellbookValid()} class:zone-complete={isCubeDeck && spellbookCount === deckLimits()?.spellbook}>({spellbookCount}/{deckLimits()?.spellbook || 60})</span></h2>
+        <h2>
+          Spellbook <span
+            class="zone-count"
+            class:zone-over={isCubeDeck && !spellbookValid()}
+            class:zone-complete={isCubeDeck && spellbookCount === deckLimits()?.spellbook}
+            >({spellbookCount}/{deckLimits()?.spellbook || 60})</span
+          >
+        </h2>
         {#if data.spellbook.length > 0}
           <div class="card-list">
             {#each Object.entries(spellbookByElement) as [element, cards]}
               {#if cards.length > 0}
-                <h4 class="element-subheading element-{element.toLowerCase()}">{element} ({cards.reduce((s, dc) => s + dc.quantity, 0)})</h4>
+                <h4 class="element-subheading element-{element.toLowerCase()}">
+                  {element} ({cards.reduce((s, dc) => s + dc.quantity, 0)})
+                </h4>
                 {#each cards as dc}
                   <div class="deck-card-row">
                     {#if dc.card.image_url}
@@ -293,13 +333,26 @@
                     {/if}
                     <div class="deck-card-info">
                       <span class="deck-card-name">{dc.card.name}</span>
-                      <span class="deck-card-meta">{dc.card.type || ''} {dc.card.cost !== null ? `· ${dc.card.cost}` : ''}</span>
+                      <span class="deck-card-meta"
+                        >{dc.card.type || ''}
+                        {dc.card.cost !== null ? `· ${dc.card.cost}` : ''}</span
+                      >
                     </div>
                     <div class="deck-card-controls">
-                      <button class="qty-btn" onclick={() => changeQuantity(dc.card_id, 'spellbook', dc.quantity - 1)}>-</button>
+                      <button
+                        class="qty-btn"
+                        onclick={() => changeQuantity(dc.card_id, 'spellbook', dc.quantity - 1)}
+                        >-</button
+                      >
                       <span class="qty">{dc.quantity}</span>
-                      <button class="qty-btn" onclick={() => changeQuantity(dc.card_id, 'spellbook', dc.quantity + 1)}>+</button>
-                      <button class="remove-btn" onclick={() => removeCard(dc.card_id, 'spellbook')}>&times;</button>
+                      <button
+                        class="qty-btn"
+                        onclick={() => changeQuantity(dc.card_id, 'spellbook', dc.quantity + 1)}
+                        >+</button
+                      >
+                      <button class="remove-btn" onclick={() => removeCard(dc.card_id, 'spellbook')}
+                        >&times;</button
+                      >
                     </div>
                   </div>
                 {/each}
@@ -506,13 +559,33 @@
     padding-bottom: 0.25rem;
     border-bottom: 2px solid var(--color-border);
   }
-  .element-subheading:first-child { margin-top: 0; }
-  .element-subheading.element-air { border-color: #7c9cbf; color: #7c9cbf; }
-  .element-subheading.element-earth { border-color: #8b7d5b; color: #8b7d5b; }
-  .element-subheading.element-fire { border-color: #c9583c; color: #c9583c; }
-  .element-subheading.element-water { border-color: #4a8fa8; color: #4a8fa8; }
-  .element-subheading.element-multi { border-color: var(--color-accent); color: var(--color-accent); }
-  .element-subheading.element-none { border-color: var(--color-text-muted); color: var(--color-text-muted); }
+  .element-subheading:first-child {
+    margin-top: 0;
+  }
+  .element-subheading.element-air {
+    border-color: #7c9cbf;
+    color: #7c9cbf;
+  }
+  .element-subheading.element-earth {
+    border-color: #8b7d5b;
+    color: #8b7d5b;
+  }
+  .element-subheading.element-fire {
+    border-color: #c9583c;
+    color: #c9583c;
+  }
+  .element-subheading.element-water {
+    border-color: #4a8fa8;
+    color: #4a8fa8;
+  }
+  .element-subheading.element-multi {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+  .element-subheading.element-none {
+    border-color: var(--color-text-muted);
+    color: var(--color-text-muted);
+  }
 
   .deck-card-row {
     display: flex;

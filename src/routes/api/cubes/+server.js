@@ -14,18 +14,24 @@ export async function POST({ locals, request }) {
     return json({ error: 'Name is required' }, { status: 400 });
   }
 
-  const slug = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '') + '-' + Date.now().toString(36);
+  const slug =
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '') +
+    '-' +
+    Date.now().toString(36);
 
-  const [cube] = await db.insert(cubes).values({
-    user_id: session.user.id,
-    name: name.trim(),
-    description: description || null,
-    settings: settings ? JSON.stringify(settings) : null,
-    slug
-  }).returning();
+  const [cube] = await db
+    .insert(cubes)
+    .values({
+      user_id: session.user.id,
+      name: name.trim(),
+      description: description || null,
+      settings: settings ? JSON.stringify(settings) : null,
+      slug
+    })
+    .returning();
 
   return json(cube, { status: 201 });
 }

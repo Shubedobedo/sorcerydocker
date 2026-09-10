@@ -21,7 +21,9 @@ export async function GET({ locals, url }) {
   const setFilter = url.searchParams.get('set') || '';
 
   // Get the user's collection, indexed by card_id -> total quantity
-  const userCollection = await db.select().from(collections)
+  const userCollection = await db
+    .select()
+    .from(collections)
     .where(eq(collections.user_id, session.user.id));
   const ownedByCard = {};
   for (const item of userCollection) {
@@ -71,14 +73,16 @@ export async function GET({ locals, url }) {
   // Build CSV in Curiosa format: card name,set,finish,product,quantity,notes
   const lines = ['card name,set,finish,product,quantity,notes'];
   for (const r of rows) {
-    lines.push([
-      csvField(r.name),
-      csvField(r.set),
-      csvField(r.finish),
-      csvField(r.product),
-      r.quantity,
-      ''
-    ].join(','));
+    lines.push(
+      [
+        csvField(r.name),
+        csvField(r.set),
+        csvField(r.finish),
+        csvField(r.product),
+        r.quantity,
+        ''
+      ].join(',')
+    );
   }
 
   const csv = lines.join('\n');

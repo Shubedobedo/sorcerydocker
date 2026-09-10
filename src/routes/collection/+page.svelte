@@ -18,7 +18,15 @@
   let importResult = $state('');
 
   // Filters — initialize from URL params
-  let filters = $state({ types: [], elements: [], rarities: [], sets: [], cost: '', q: '', completion: '' });
+  let filters = $state({
+    types: [],
+    elements: [],
+    rarities: [],
+    sets: [],
+    cost: '',
+    q: '',
+    completion: ''
+  });
 
   const typeOptions = ['Minion', 'Magic', 'Aura', 'Artifact', 'Site', 'Avatar'];
   const elementOptions = ['Air', 'Earth', 'Fire', 'Water'];
@@ -116,7 +124,7 @@
     if (filters.completion === 'missing') {
       // Include cards not in collection (quantity 0) plus owned cards below max
       const ownedMissing = result.filter((item) => {
-        const max = item.card.type === 'Avatar' ? 1 : (maxCopies[item.card.rarity] || 4);
+        const max = item.card.type === 'Avatar' ? 1 : maxCopies[item.card.rarity] || 4;
         return item.quantity < max;
       });
       // Also include cards not in collection at all
@@ -147,12 +155,14 @@
       if (filters.cost) {
         notOwned = notOwned.filter((item) => item.card.cost === parseInt(filters.cost));
       }
-      result = [...ownedMissing, ...notOwned].sort((a, b) => a.card.name.localeCompare(b.card.name));
+      result = [...ownedMissing, ...notOwned].sort((a, b) =>
+        a.card.name.localeCompare(b.card.name)
+      );
     } else if (filters.completion === 'extra') {
       result = result.filter((item) => {
-        const max = item.card.type === 'Avatar' ? 1 : (maxCopies[item.card.rarity] || 4);
+        const max = item.card.type === 'Avatar' ? 1 : maxCopies[item.card.rarity] || 4;
         const tradeQty = data.tradeMap?.[item.card_id] || 0;
-        return (item.quantity - tradeQty) > max;
+        return item.quantity - tradeQty > max;
       });
     }
 
@@ -179,11 +189,15 @@
     const json = await res.json();
     if (res.ok) {
       importResult = `Imported ${json.imported} cards (${json.skipped} skipped)`;
-      setTimeout(() => { window.location.reload(); }, 1500);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } else {
       importResult = json.error || 'Import failed';
     }
-    setTimeout(() => { importResult = ''; }, 5000);
+    setTimeout(() => {
+      importResult = '';
+    }, 5000);
   }
 
   $effect(() => {
@@ -208,14 +222,19 @@
         const removed = collection.find((c) => c.id === item.id);
         collection = collection.filter((c) => c.id !== item.id);
         if (removed) {
-          missingCards = [...missingCards, { ...removed, id: `missing-${removed.card_id}`, quantity: 0 }].sort((a, b) => a.card.name.localeCompare(b.card.name));
+          missingCards = [
+            ...missingCards,
+            { ...removed, id: `missing-${removed.card_id}`, quantity: 0 }
+          ].sort((a, b) => a.card.name.localeCompare(b.card.name));
         }
       } else if (item.quantity === 0 || String(item.id).startsWith('missing-')) {
         // Card was in missingCards, move to collection
         missingCards = missingCards.filter((c) => c.card_id !== item.card_id);
-        collection = [...collection, { ...item, id: item.card_id, quantity: newQty }].sort((a, b) => a.card.name.localeCompare(b.card.name));
+        collection = [...collection, { ...item, id: item.card_id, quantity: newQty }].sort((a, b) =>
+          a.card.name.localeCompare(b.card.name)
+        );
       } else {
-        collection = collection.map((c) => c.id === item.id ? { ...c, quantity: newQty } : c);
+        collection = collection.map((c) => (c.id === item.id ? { ...c, quantity: newQty } : c));
       }
     }
   }
@@ -240,7 +259,9 @@
 
   function showToast(message) {
     toast = message;
-    setTimeout(() => { toast = ''; }, 3000);
+    setTimeout(() => {
+      toast = '';
+    }, 3000);
   }
 
   function openTradeModal(item) {
@@ -311,7 +332,12 @@
     </div>
     <div class="header-actions">
       <button class="btn btn-secondary" onclick={shareCollection}>Share</button>
-      <button class="btn btn-secondary" onclick={() => { showCsvPanel = true; }}>Import / Export</button>
+      <button
+        class="btn btn-secondary"
+        onclick={() => {
+          showCsvPanel = true;
+        }}>Import / Export</button
+      >
     </div>
   </div>
 
@@ -334,7 +360,11 @@
           <div class="multi-select-dropdown">
             {#each typeOptions as t}
               <label class="checkbox-item">
-                <input type="checkbox" checked={filters.types.includes(t)} onchange={() => toggleFilter('types', t)} />
+                <input
+                  type="checkbox"
+                  checked={filters.types.includes(t)}
+                  onchange={() => toggleFilter('types', t)}
+                />
                 <span>{t}</span>
               </label>
             {/each}
@@ -351,7 +381,11 @@
           <div class="multi-select-dropdown">
             {#each elementOptions as el}
               <label class="checkbox-item">
-                <input type="checkbox" checked={filters.elements.includes(el)} onchange={() => toggleFilter('elements', el)} />
+                <input
+                  type="checkbox"
+                  checked={filters.elements.includes(el)}
+                  onchange={() => toggleFilter('elements', el)}
+                />
                 <span>{el}</span>
               </label>
             {/each}
@@ -368,7 +402,11 @@
           <div class="multi-select-dropdown">
             {#each rarityOptions as r}
               <label class="checkbox-item">
-                <input type="checkbox" checked={filters.rarities.includes(r)} onchange={() => toggleFilter('rarities', r)} />
+                <input
+                  type="checkbox"
+                  checked={filters.rarities.includes(r)}
+                  onchange={() => toggleFilter('rarities', r)}
+                />
                 <span>{r}</span>
               </label>
             {/each}
@@ -385,7 +423,11 @@
           <div class="multi-select-dropdown">
             {#each data.allSets as s}
               <label class="checkbox-item">
-                <input type="checkbox" checked={filters.sets.includes(s.id)} onchange={() => toggleFilter('sets', s.id)} />
+                <input
+                  type="checkbox"
+                  checked={filters.sets.includes(s.id)}
+                  onchange={() => toggleFilter('sets', s.id)}
+                />
                 <span>{s.name}</span>
               </label>
             {/each}
@@ -400,9 +442,27 @@
         {/each}
       </select>
       <div class="segmented-control">
-        <button class="seg-btn" class:active={filters.completion === ''} onclick={() => { filters.completion = ''; }}>All</button>
-        <button class="seg-btn" class:active={filters.completion === 'missing'} onclick={() => { filters.completion = 'missing'; }}>Missing</button>
-        <button class="seg-btn" class:active={filters.completion === 'extra'} onclick={() => { filters.completion = 'extra'; }}>Extra</button>
+        <button
+          class="seg-btn"
+          class:active={filters.completion === ''}
+          onclick={() => {
+            filters.completion = '';
+          }}>All</button
+        >
+        <button
+          class="seg-btn"
+          class:active={filters.completion === 'missing'}
+          onclick={() => {
+            filters.completion = 'missing';
+          }}>Missing</button
+        >
+        <button
+          class="seg-btn"
+          class:active={filters.completion === 'extra'}
+          onclick={() => {
+            filters.completion = 'extra';
+          }}>Extra</button
+        >
       </div>
       <button class="btn btn-secondary" onclick={clearFilters}>Clear</button>
     </div>
@@ -427,10 +487,16 @@
               {#if item.price != null}<span class="card-price">${item.price.toFixed(2)}</span>{/if}
             </span>
             <div class="qty-controls">
-              <button class="qty-btn" onclick={() => updateQuantity(item, item.quantity - 1)}>-</button>
+              <button class="qty-btn" onclick={() => updateQuantity(item, item.quantity - 1)}
+                >-</button
+              >
               <span class="qty">{item.quantity}</span>
-              <button class="qty-btn" onclick={() => updateQuantity(item, item.quantity + 1)}>+</button>
-              <button class="trade-btn" onclick={() => markForTrade(item)} title="Mark for trade">&#8644;</button>
+              <button class="qty-btn" onclick={() => updateQuantity(item, item.quantity + 1)}
+                >+</button
+              >
+              <button class="trade-btn" onclick={() => markForTrade(item)} title="Mark for trade"
+                >&#8644;</button
+              >
               <button class="remove-btn" onclick={() => removeItem(item)}>&times;</button>
             </div>
           </div>
@@ -438,17 +504,31 @@
       {/each}
     </div>
   {:else}
-    <p class="empty">No cards match your filters. {#if collection.length === 0}Browse the <a href="/cards">card database</a> to add cards.{/if}</p>
+    <p class="empty">
+      No cards match your filters. {#if collection.length === 0}Browse the <a href="/cards"
+          >card database</a
+        > to add cards.{/if}
+    </p>
   {/if}
 </div>
 
 <!-- CSV Slide Panel -->
 {#if showCsvPanel}
-  <div class="panel-overlay" onclick={() => { showCsvPanel = false; }}></div>
+  <div
+    class="panel-overlay"
+    onclick={() => {
+      showCsvPanel = false;
+    }}
+  ></div>
   <aside class="slide-panel">
     <div class="panel-header">
       <h2>Import / Export</h2>
-      <button class="panel-close" onclick={() => { showCsvPanel = false; }}>&times;</button>
+      <button
+        class="panel-close"
+        onclick={() => {
+          showCsvPanel = false;
+        }}>&times;</button
+      >
     </div>
 
     <div class="panel-section">
@@ -460,14 +540,23 @@
           <option value={s.id}>{s.name}</option>
         {/each}
       </select>
-      <a href="/api/collection/export?set={exportSet}" class="btn btn-primary" download>Download CSV</a>
+      <a href="/api/collection/export?set={exportSet}" class="btn btn-primary" download
+        >Download CSV</a
+      >
     </div>
 
     <div class="panel-section">
       <h3>Import CSV</h3>
-      <p class="panel-hint">Upload a Curiosa-format CSV (card name, set, finish, product, quantity, notes).</p>
-      <input type="file" accept=".csv" class="file-input" id="csv-upload"
-        onchange={handleFileUpload} />
+      <p class="panel-hint">
+        Upload a Curiosa-format CSV (card name, set, finish, product, quantity, notes).
+      </p>
+      <input
+        type="file"
+        accept=".csv"
+        class="file-input"
+        id="csv-upload"
+        onchange={handleFileUpload}
+      />
       <label for="csv-upload" class="btn btn-primary">Upload CSV</label>
       {#if importResult}
         <span class="import-result">{importResult}</span>
@@ -477,7 +566,12 @@
 {/if}
 
 {#if tradeModalItem}
-  <div class="modal-overlay" onclick={() => { tradeModalItem = null; }}>
+  <div
+    class="modal-overlay"
+    onclick={() => {
+      tradeModalItem = null;
+    }}
+  >
     <div class="modal" onclick={(e) => e.stopPropagation()}>
       <h3>Mark for Trade</h3>
       <p class="modal-card-name">{tradeModalItem.card.name}</p>
@@ -485,14 +579,29 @@
 
       <label class="modal-label">Quantity to trade</label>
       <div class="modal-qty">
-        <button class="qty-btn" onclick={() => { if (tradeQty > 1) tradeQty--; }}>-</button>
+        <button
+          class="qty-btn"
+          onclick={() => {
+            if (tradeQty > 1) tradeQty--;
+          }}>-</button
+        >
         <span class="qty">{tradeQty}</span>
-        <button class="qty-btn" onclick={() => { if (tradeQty < tradeModalItem.quantity) tradeQty++; }}>+</button>
+        <button
+          class="qty-btn"
+          onclick={() => {
+            if (tradeQty < tradeModalItem.quantity) tradeQty++;
+          }}>+</button
+        >
       </div>
 
       <div class="modal-actions">
         <button class="btn btn-primary" onclick={confirmTrade}>Mark for Trade</button>
-        <button class="btn btn-secondary" onclick={() => { tradeModalItem = null; }}>Cancel</button>
+        <button
+          class="btn btn-secondary"
+          onclick={() => {
+            tradeModalItem = null;
+          }}>Cancel</button
+        >
       </div>
     </div>
   </div>
@@ -520,7 +629,9 @@
     gap: 1rem;
   }
 
-  .collection-header h1 { margin: 0; }
+  .collection-header h1 {
+    margin: 0;
+  }
 
   .header-actions {
     display: flex;
@@ -656,7 +767,7 @@
     background-color: var(--color-bg-tertiary);
   }
 
-  .checkbox-item input[type="checkbox"] {
+  .checkbox-item input[type='checkbox'] {
     accent-color: var(--color-primary);
   }
 
@@ -687,8 +798,12 @@
   }
 
   @keyframes slide-in {
-    from { transform: translateX(100%); }
-    to { transform: translateX(0); }
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
   }
 
   .panel-header {

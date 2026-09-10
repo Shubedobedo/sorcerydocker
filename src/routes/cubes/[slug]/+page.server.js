@@ -29,10 +29,7 @@ export async function load({ locals, params }) {
   }
 
   // Get cube cards
-  const cubeCardRows = await db
-    .select()
-    .from(cubeCards)
-    .where(eq(cubeCards.cube_id, cube.id));
+  const cubeCardRows = await db.select().from(cubeCards).where(eq(cubeCards.cube_id, cube.id));
 
   const enriched = [];
   for (const cc of cubeCardRows) {

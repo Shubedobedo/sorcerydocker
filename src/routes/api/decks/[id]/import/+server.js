@@ -30,11 +30,19 @@ export async function POST({ locals, request, params }) {
     if (!trimmed) continue;
 
     // Check for zone headers
-    if (trimmed.toLowerCase().includes('// atlas') || trimmed.toLowerCase() === 'atlas' || trimmed.toLowerCase() === 'atlas:') {
+    if (
+      trimmed.toLowerCase().includes('// atlas') ||
+      trimmed.toLowerCase() === 'atlas' ||
+      trimmed.toLowerCase() === 'atlas:'
+    ) {
       currentZone = 'atlas';
       continue;
     }
-    if (trimmed.toLowerCase().includes('// spellbook') || trimmed.toLowerCase() === 'spellbook' || trimmed.toLowerCase() === 'spellbook:') {
+    if (
+      trimmed.toLowerCase().includes('// spellbook') ||
+      trimmed.toLowerCase() === 'spellbook' ||
+      trimmed.toLowerCase() === 'spellbook:'
+    ) {
       currentZone = 'spellbook';
       continue;
     }
@@ -66,11 +74,18 @@ export async function POST({ locals, request, params }) {
 
     // Check if already in deck
     const existing = await db.query.deckCards.findFirst({
-      where: and(eq(deckCards.deck_id, deck.id), eq(deckCards.card_id, found.id), eq(deckCards.zone, zone))
+      where: and(
+        eq(deckCards.deck_id, deck.id),
+        eq(deckCards.card_id, found.id),
+        eq(deckCards.zone, zone)
+      )
     });
 
     if (existing) {
-      await db.update(deckCards).set({ quantity: existing.quantity + quantity }).where(eq(deckCards.id, existing.id));
+      await db
+        .update(deckCards)
+        .set({ quantity: existing.quantity + quantity })
+        .where(eq(deckCards.id, existing.id));
     } else {
       await db.insert(deckCards).values({
         deck_id: deck.id,

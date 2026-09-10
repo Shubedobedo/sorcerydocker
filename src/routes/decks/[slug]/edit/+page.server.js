@@ -20,10 +20,7 @@ export async function load({ locals, params }) {
   }
 
   // Get deck cards with full card data
-  const deckCardRows = await db
-    .select()
-    .from(deckCards)
-    .where(eq(deckCards.deck_id, deck.id));
+  const deckCardRows = await db.select().from(deckCards).where(eq(deckCards.deck_id, deck.id));
 
   // Actually get all cards in the deck
   const allDeckCards = [];

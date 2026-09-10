@@ -102,17 +102,15 @@ export async function POST({ locals, request, params }) {
       if (totalAdded >= cubeSize) break;
 
       const rarity = card.rarity || 'Ordinary';
-      const maxCopies = card.type === 'Avatar' ? 1 : (rarities[rarity]?.max ?? getDefaultMax(rarity));
+      const maxCopies =
+        card.type === 'Avatar' ? 1 : (rarities[rarity]?.max ?? getDefaultMax(rarity));
       const currentCount = cardCounts[card.id] || 0;
 
       if (currentCount < maxCopies) {
         // Randomly decide how many to add this pass (1 to remaining allowed)
         const remaining = maxCopies - currentCount;
         const spaceLeft = cubeSize - totalAdded;
-        const toAdd = Math.min(
-          Math.ceil(Math.random() * remaining),
-          spaceLeft
-        );
+        const toAdd = Math.min(Math.ceil(Math.random() * remaining), spaceLeft);
 
         cardCounts[card.id] = currentCount + toAdd;
         pool[card.id] = (pool[card.id] || 0) + toAdd;
@@ -142,15 +140,27 @@ export async function POST({ locals, request, params }) {
 
   await db.update(cubes).set({ updated_at: new Date().toISOString() }).where(eq(cubes.id, cube.id));
 
-  return json({ success: true, poolSize: totalAdded, warning: totalAdded < cubeSize ? `Could only generate ${totalAdded}/${cubeSize} cards with current settings` : null });
+  return json({
+    success: true,
+    poolSize: totalAdded,
+    warning:
+      totalAdded < cubeSize
+        ? `Could only generate ${totalAdded}/${cubeSize} cards with current settings`
+        : null
+  });
 }
 
 function getDefaultMax(rarity) {
   switch (rarity) {
-    case 'Ordinary': return 4;
-    case 'Exceptional': return 3;
-    case 'Elite': return 2;
-    case 'Unique': return 1;
-    default: return 4;
+    case 'Ordinary':
+      return 4;
+    case 'Exceptional':
+      return 3;
+    case 'Elite':
+      return 2;
+    case 'Unique':
+      return 1;
+    default:
+      return 4;
   }
 }

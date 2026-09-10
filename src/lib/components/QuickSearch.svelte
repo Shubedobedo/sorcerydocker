@@ -61,7 +61,9 @@
     oninput={handleInput}
     onkeydown={handleKeydown}
     onblur={handleBlur}
-    onfocus={() => { if (results.length) showResults = true; }}
+    onfocus={() => {
+      if (results.length) showResults = true;
+    }}
     aria-label="Quick card search"
     autocomplete="off"
   />

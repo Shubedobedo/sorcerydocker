@@ -38,7 +38,9 @@
 
     if (res.ok) {
       addMessage = `Added to deck!`;
-      setTimeout(() => { addMessage = ''; }, 2000);
+      setTimeout(() => {
+        addMessage = '';
+      }, 2000);
     } else {
       addMessage = 'Failed to add';
     }
@@ -66,7 +68,9 @@
       addMessage = `Created "${newDeckName}" and added card!`;
       newDeckName = '';
       showNewDeck = false;
-      setTimeout(() => { addMessage = ''; }, 3000);
+      setTimeout(() => {
+        addMessage = '';
+      }, 3000);
     }
   }
 
@@ -87,7 +91,9 @@
     if (res.ok) {
       const result = await res.json();
       addMessage = `Added to collection! (${result.quantity}x)`;
-      setTimeout(() => { addMessage = ''; }, 2000);
+      setTimeout(() => {
+        addMessage = '';
+      }, 2000);
     } else {
       addMessage = 'Failed to add';
     }
@@ -109,10 +115,22 @@
         {/if}
 
         {#if data.session?.user}
-          <button class="btn btn-secondary add-deck-btn" onclick={() => { panelMode = 'deck'; showAddToDeck = true; }}>
+          <button
+            class="btn btn-secondary add-deck-btn"
+            onclick={() => {
+              panelMode = 'deck';
+              showAddToDeck = true;
+            }}
+          >
             + Add to Deck
           </button>
-          <button class="btn btn-secondary add-deck-btn" onclick={() => { panelMode = 'collection'; showAddToDeck = true; }}>
+          <button
+            class="btn btn-secondary add-deck-btn"
+            onclick={() => {
+              panelMode = 'collection';
+              showAddToDeck = true;
+            }}
+          >
             + Add to Collection
           </button>
         {/if}
@@ -219,8 +237,14 @@
               </tbody>
             </table>
             <p class="price-attribution">
-              Market prices via <a href="https://tcgapi.dev" target="_blank" rel="noopener noreferrer">tcgapi.dev</a>
-              {#if data.lastPriceUpdate}&middot; updated {new Date(data.lastPriceUpdate).toLocaleDateString()}{/if}
+              Market prices via <a
+                href="https://tcgapi.dev"
+                target="_blank"
+                rel="noopener noreferrer">tcgapi.dev</a
+              >
+              {#if data.lastPriceUpdate}&middot; updated {new Date(
+                  data.lastPriceUpdate
+                ).toLocaleDateString()}{/if}
             </p>
           </div>
         {/if}
@@ -245,12 +269,31 @@
       <aside class="deck-side-panel">
         <div class="side-panel-header">
           <h2>{panelMode === 'deck' ? 'Add to Deck' : 'Add to Collection'}</h2>
-          <button class="close-btn" onclick={() => { showAddToDeck = false; }}>&times;</button>
+          <button
+            class="close-btn"
+            onclick={() => {
+              showAddToDeck = false;
+            }}>&times;</button
+          >
         </div>
 
         <div class="panel-tabs">
-          <button class="panel-tab" class:active={panelMode === 'deck'} onclick={() => { panelMode = 'deck'; addMessage = ''; }}>Deck</button>
-          <button class="panel-tab" class:active={panelMode === 'collection'} onclick={() => { panelMode = 'collection'; addMessage = ''; }}>Collection</button>
+          <button
+            class="panel-tab"
+            class:active={panelMode === 'deck'}
+            onclick={() => {
+              panelMode = 'deck';
+              addMessage = '';
+            }}>Deck</button
+          >
+          <button
+            class="panel-tab"
+            class:active={panelMode === 'collection'}
+            onclick={() => {
+              panelMode = 'collection';
+              addMessage = '';
+            }}>Collection</button
+          >
         </div>
 
         {#if panelMode === 'deck'}
@@ -272,7 +315,12 @@
             <span>or</span>
           </div>
 
-          <button class="btn btn-secondary new-deck-btn" onclick={() => { showNewDeck = !showNewDeck; }}>
+          <button
+            class="btn btn-secondary new-deck-btn"
+            onclick={() => {
+              showNewDeck = !showNewDeck;
+            }}
+          >
             {showNewDeck ? 'Cancel' : 'Create New Deck'}
           </button>
 
@@ -290,9 +338,19 @@
           <div class="collection-form">
             <label class="form-label">Quantity</label>
             <div class="qty-row">
-              <button class="qty-btn" onclick={() => { if (collectionQty > 1) collectionQty--; }}>-</button>
+              <button
+                class="qty-btn"
+                onclick={() => {
+                  if (collectionQty > 1) collectionQty--;
+                }}>-</button
+              >
               <span class="qty">{collectionQty}</span>
-              <button class="qty-btn" onclick={() => { collectionQty++; }}>+</button>
+              <button
+                class="qty-btn"
+                onclick={() => {
+                  collectionQty++;
+                }}>+</button
+              >
             </div>
 
             <button class="btn btn-primary collection-add-btn" onclick={addToCollection}>

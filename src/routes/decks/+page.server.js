@@ -34,13 +34,17 @@ export async function load({ locals }) {
       .orderBy(desc(decks.updated_at));
 
     // Get friends' decks set to "friends" visibility
-    const myFriendships = await db.select().from(friendships)
+    const myFriendships = await db
+      .select()
+      .from(friendships)
       .where(eq(friendships.friend_id, session.user.id));
 
     if (myFriendships.length > 0) {
       const friendIds = myFriendships.map((f) => f.user_id);
       for (const fId of friendIds) {
-        const fDecks = await db.select().from(decks)
+        const fDecks = await db
+          .select()
+          .from(decks)
           .where(and(eq(decks.user_id, fId), eq(decks.visibility, 'friends')))
           .orderBy(desc(decks.updated_at));
         const friend = await db.query.users.findFirst({ where: eq(users.id, fId) });
@@ -51,12 +55,14 @@ export async function load({ locals }) {
     }
 
     // Get cubes the user can build decks from (own + public + friends')
-    const ownCubes = await db.select({ id: cubes.id, name: cubes.name, slug: cubes.slug })
+    const ownCubes = await db
+      .select({ id: cubes.id, name: cubes.name, slug: cubes.slug })
       .from(cubes)
       .where(eq(cubes.user_id, session.user.id))
       .orderBy(desc(cubes.updated_at));
 
-    const publicCubes = await db.select({ id: cubes.id, name: cubes.name, slug: cubes.slug })
+    const publicCubes = await db
+      .select({ id: cubes.id, name: cubes.name, slug: cubes.slug })
       .from(cubes)
       .where(eq(cubes.visibility, 'public'))
       .orderBy(desc(cubes.updated_at));
@@ -66,7 +72,8 @@ export async function load({ locals }) {
     if (myFriendships.length > 0) {
       const friendIds = myFriendships.map((f) => f.user_id);
       for (const fId of friendIds) {
-        const fCubes = await db.select({ id: cubes.id, name: cubes.name, slug: cubes.slug })
+        const fCubes = await db
+          .select({ id: cubes.id, name: cubes.name, slug: cubes.slug })
           .from(cubes)
           .where(and(eq(cubes.user_id, fId), eq(cubes.visibility, 'friends')))
           .orderBy(desc(cubes.updated_at));

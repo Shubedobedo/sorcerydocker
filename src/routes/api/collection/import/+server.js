@@ -12,8 +12,10 @@ function parseCsvLine(line) {
     const ch = line[i];
     if (inQuotes) {
       if (ch === '"') {
-        if (line[i + 1] === '"') { cur += '"'; i++; }
-        else inQuotes = false;
+        if (line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else inQuotes = false;
       } else {
         cur += ch;
       }
@@ -59,7 +61,10 @@ export async function POST({ locals, request }) {
   const setIdx = header.indexOf('set');
 
   if (qtyIdx === -1 || (nameIdx === -1 && cardIdIdx === -1)) {
-    return json({ error: 'CSV must have a "card name" (or card_id) column and a "quantity" column' }, { status: 400 });
+    return json(
+      { error: 'CSV must have a "card name" (or card_id) column and a "quantity" column' },
+      { status: 400 }
+    );
   }
 
   let imported = 0;
@@ -70,7 +75,10 @@ export async function POST({ locals, request }) {
     const row = parseCsvLine(lines[i]);
 
     const quantity = parseInt(row[qtyIdx]);
-    if (isNaN(quantity)) { skipped++; continue; }
+    if (isNaN(quantity)) {
+      skipped++;
+      continue;
+    }
 
     // Resolve the card id (by name or explicit id)
     let cardId;
@@ -79,20 +87,23 @@ export async function POST({ locals, request }) {
     } else if (cardIdIdx !== -1) {
       cardId = row[cardIdIdx];
     }
-    if (!cardId) { skipped++; continue; }
+    if (!cardId) {
+      skipped++;
+      continue;
+    }
 
     const card = await db.query.cards.findFirst({ where: eq(cards.id, cardId) });
-    if (!card) { skipped++; continue; }
+    if (!card) {
+      skipped++;
+      continue;
+    }
 
     // Use the set from the CSV if present, otherwise the card's primary set
-    const setName = (setIdx !== -1 && row[setIdx]) ? row[setIdx] : card.set_name;
+    const setName = setIdx !== -1 && row[setIdx] ? row[setIdx] : card.set_name;
     const setId = setName ? setName.toLowerCase().replace(/\s+/g, '-') : card.set_id;
 
     // Match existing entry by card + set so different-set copies stay separate
-    const conditions = [
-      eq(collections.user_id, session.user.id),
-      eq(collections.card_id, cardId)
-    ];
+    const conditions = [eq(collections.user_id, session.user.id), eq(collections.card_id, cardId)];
     if (setId) conditions.push(eq(collections.set_id, setId));
 
     const existing = await db.query.collections.findFirst({ where: and(...conditions) });

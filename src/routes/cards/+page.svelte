@@ -154,7 +154,9 @@
         class="input search-input"
         placeholder="Search by name..."
         bind:value={filters.q}
-        onkeydown={(e) => { if (e.key === 'Enter') applyFilters(); }}
+        onkeydown={(e) => {
+          if (e.key === 'Enter') applyFilters();
+        }}
       />
       <button class="btn btn-primary" onclick={applyFilters}>Search</button>
       <button class="btn btn-secondary" onclick={clearFilters}>Clear</button>
@@ -170,7 +172,11 @@
           <div class="multi-select-dropdown">
             {#each typeOptions as t}
               <label class="checkbox-item">
-                <input type="checkbox" checked={filters.types.includes(t)} onchange={() => toggleFilter('types', t)} />
+                <input
+                  type="checkbox"
+                  checked={filters.types.includes(t)}
+                  onchange={() => toggleFilter('types', t)}
+                />
                 <span>{t}</span>
               </label>
             {/each}
@@ -187,7 +193,11 @@
           <div class="multi-select-dropdown">
             {#each elementOptions as el}
               <label class="checkbox-item">
-                <input type="checkbox" checked={filters.elements.includes(el)} onchange={() => toggleFilter('elements', el)} />
+                <input
+                  type="checkbox"
+                  checked={filters.elements.includes(el)}
+                  onchange={() => toggleFilter('elements', el)}
+                />
                 <span>{el}</span>
               </label>
             {/each}
@@ -204,7 +214,11 @@
           <div class="multi-select-dropdown">
             {#each rarityOptions as r}
               <label class="checkbox-item">
-                <input type="checkbox" checked={filters.rarities.includes(r)} onchange={() => toggleFilter('rarities', r)} />
+                <input
+                  type="checkbox"
+                  checked={filters.rarities.includes(r)}
+                  onchange={() => toggleFilter('rarities', r)}
+                />
                 <span>{r}</span>
               </label>
             {/each}
@@ -221,7 +235,11 @@
           <div class="multi-select-dropdown">
             {#each data.allSets as s}
               <label class="checkbox-item">
-                <input type="checkbox" checked={filters.sets.includes(s.id)} onchange={() => toggleFilter('sets', s.id)} />
+                <input
+                  type="checkbox"
+                  checked={filters.sets.includes(s.id)}
+                  onchange={() => toggleFilter('sets', s.id)}
+                />
                 <span>{s.name}</span>
               </label>
             {/each}
@@ -250,7 +268,10 @@
                 src={card.image_url}
                 alt={card.name}
                 loading="lazy"
-                onerror={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
+                onerror={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextElementSibling.style.display = 'flex';
+                }}
               />
               <div class="card-placeholder" style="display:none">
                 <span class="placeholder-name">{card.name}</span>
@@ -265,7 +286,8 @@
             <span class="card-name">{card.name}</span>
             <span class="card-meta">
               {card.type || ''}
-              {#if card.cost !== null} &middot; {card.cost}{/if}
+              {#if card.cost !== null}
+                &middot; {card.cost}{/if}
             </span>
           </div>
         </a>
@@ -381,7 +403,7 @@
     background-color: var(--color-bg-tertiary);
   }
 
-  .checkbox-item input[type="checkbox"] {
+  .checkbox-item input[type='checkbox'] {
     accent-color: var(--color-primary);
   }
 
@@ -403,7 +425,9 @@
     overflow: hidden;
     background-color: var(--color-bg-secondary);
     border: 1px solid var(--color-border);
-    transition: transform 0.15s, border-color 0.15s;
+    transition:
+      transform 0.15s,
+      border-color 0.15s;
   }
 
   .card-tile:hover {

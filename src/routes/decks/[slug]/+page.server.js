@@ -33,10 +33,7 @@ export async function load({ locals, params }) {
   }
 
   // Get deck cards
-  const deckCardRows = await db
-    .select()
-    .from(deckCards)
-    .where(eq(deckCards.deck_id, deck.id));
+  const deckCardRows = await db.select().from(deckCards).where(eq(deckCards.deck_id, deck.id));
 
   const allDeckCards = [];
   for (const dc of deckCardRows) {

@@ -45,10 +45,7 @@ export async function GET({ url }) {
   }
 
   // Get first standard image for each card
-  const images = await db
-    .select()
-    .from(cardImages)
-    .where(like(cardImages.art_type, 'standard%'));
+  const images = await db.select().from(cardImages).where(like(cardImages.art_type, 'standard%'));
 
   const imageMap = {};
   for (const img of images) {

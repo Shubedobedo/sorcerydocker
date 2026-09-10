@@ -34,9 +34,7 @@
       <span class="hamburger" class:open={mobileMenuOpen}></span>
     </button>
 
-    <a href="/" class="nav-brand" onclick={closeMobileMenu}>
-      Sorcery TCG
-    </a>
+    <a href="/" class="nav-brand" onclick={closeMobileMenu}> Sorcery TCG </a>
 
     <QuickSearch />
 
@@ -98,9 +96,14 @@
               src={session.user.image}
               alt={session.user.name}
               class="avatar-img"
-              onerror={(e) => { e.target.style.display = 'none'; e.target.nextElementSibling.style.display = 'flex'; }}
+              onerror={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextElementSibling.style.display = 'flex';
+              }}
             />
-            <span class="avatar-placeholder" style="display:none">{session.user.name?.[0] || '?'}</span>
+            <span class="avatar-placeholder" style="display:none"
+              >{session.user.name?.[0] || '?'}</span
+            >
           {:else}
             <span class="avatar-placeholder">{session.user.name?.[0] || '?'}</span>
           {/if}
@@ -163,7 +166,9 @@
     border-radius: var(--radius-md);
     color: var(--color-text-muted);
     font-size: 0.875rem;
-    transition: color 0.2s, background-color 0.2s;
+    transition:
+      color 0.2s,
+      background-color 0.2s;
   }
 
   .nav-link:hover {
@@ -275,7 +280,9 @@
       transform: translateY(-100%);
       opacity: 0;
       pointer-events: none;
-      transition: transform 0.3s, opacity 0.3s;
+      transition:
+        transform 0.3s,
+        opacity 0.3s;
     }
 
     .nav-links.open {

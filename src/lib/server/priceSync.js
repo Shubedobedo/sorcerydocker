@@ -88,7 +88,8 @@ export async function runPriceSync() {
           continue;
         }
         matched++;
-        const finish = (item.printing || '').toLowerCase() === 'foil' || item.foil_only ? 'foil' : 'normal';
+        const finish =
+          (item.printing || '').toLowerCase() === 'foil' || item.foil_only ? 'foil' : 'normal';
         collected.push({
           card_id: cardId,
           set_name: set.name,
@@ -163,21 +164,35 @@ export async function loadPriceResolver() {
     const secondary = finish === 'foil' ? 'normal' : 'foil';
 
     // Prefer the requested finish for the item's set
-    if (lookup[`${cardId}::${setName}::${primary}`] != null) return lookup[`${cardId}::${setName}::${primary}`];
+    if (lookup[`${cardId}::${setName}::${primary}`] != null)
+      return lookup[`${cardId}::${setName}::${primary}`];
     // Then the other finish for that set
-    if (lookup[`${cardId}::${setName}::${secondary}`] != null) return lookup[`${cardId}::${setName}::${secondary}`];
+    if (lookup[`${cardId}::${setName}::${secondary}`] != null)
+      return lookup[`${cardId}::${setName}::${secondary}`];
 
     const cardRows = byCard[cardId] || [];
     // Then cheapest of the requested finish across any set
-    const primaryPrices = cardRows.filter((r) => r.finish === primary && r.market_price != null).map((r) => parseFloat(r.market_price));
+    const primaryPrices = cardRows
+      .filter((r) => r.finish === primary && r.market_price != null)
+      .map((r) => parseFloat(r.market_price));
     if (primaryPrices.length) return Math.min(...primaryPrices);
     // Fallback: cheapest of any finish
-    const any = cardRows.filter((r) => r.market_price != null).map((r) => parseFloat(r.market_price));
+    const any = cardRows
+      .filter((r) => r.market_price != null)
+      .map((r) => parseFloat(r.market_price));
     return any.length ? Math.min(...any) : null;
   }
 
   // Distinct set names that have price data for a given card (sorted by release order)
-  const SET_ORDER = ['Alpha', 'Beta', 'Arthurian Legends', 'Arthurian Legends Promo', 'Dragonlord', 'Gothic', 'Dust Reward Promos'];
+  const SET_ORDER = [
+    'Alpha',
+    'Beta',
+    'Arthurian Legends',
+    'Arthurian Legends Promo',
+    'Dragonlord',
+    'Gothic',
+    'Dust Reward Promos'
+  ];
   function setsForCard(cardId) {
     const cardRows = byCard[cardId] || [];
     const names = [...new Set(cardRows.map((r) => r.set_name))];

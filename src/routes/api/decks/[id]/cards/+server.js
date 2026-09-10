@@ -27,10 +27,7 @@ export async function POST({ locals, request, params }) {
   // Cube format validation: card must be in cube pool and quantity can't exceed pool amount
   if (deck.format === 'cube' && deck.cube_id) {
     const cubeCard = await db.query.cubeCards.findFirst({
-      where: and(
-        eq(cubeCards.cube_id, deck.cube_id),
-        eq(cubeCards.card_id, card_id)
-      )
+      where: and(eq(cubeCards.cube_id, deck.cube_id), eq(cubeCards.card_id, card_id))
     });
 
     if (!cubeCard) {
@@ -49,7 +46,7 @@ export async function POST({ locals, request, params }) {
     // Determine new quantity
     let newQty;
     if (existingInZone) {
-      newQty = (quantity !== undefined) ? quantity : existingInZone.quantity + 1;
+      newQty = quantity !== undefined ? quantity : existingInZone.quantity + 1;
     } else {
       newQty = quantity || 1;
     }
@@ -58,12 +55,15 @@ export async function POST({ locals, request, params }) {
     const totalAfter = currentTotal - (existingInZone?.quantity || 0) + newQty;
 
     if (newQty > 0 && totalAfter > cubeCard.quantity) {
-      return json({
-        error: `Exceeds cube pool limit. Pool has ${cubeCard.quantity}x of this card.`,
-        poolQuantity: cubeCard.quantity,
-        currentTotal,
-        warning: true
-      }, { status: 422 });
+      return json(
+        {
+          error: `Exceeds cube pool limit. Pool has ${cubeCard.quantity}x of this card.`,
+          poolQuantity: cubeCard.quantity,
+          currentTotal,
+          warning: true
+        },
+        { status: 422 }
+      );
     }
   }
 
@@ -78,7 +78,7 @@ export async function POST({ locals, request, params }) {
 
   if (existing) {
     // Update quantity
-    const newQty = (quantity !== undefined) ? quantity : existing.quantity + 1;
+    const newQty = quantity !== undefined ? quantity : existing.quantity + 1;
     if (newQty <= 0) {
       await db.delete(deckCards).where(eq(deckCards.id, existing.id));
     } else {
@@ -112,13 +112,11 @@ export async function DELETE({ locals, request, params }) {
 
   const { card_id, zone } = await request.json();
 
-  await db.delete(deckCards).where(
-    and(
-      eq(deckCards.deck_id, deck.id),
-      eq(deckCards.card_id, card_id),
-      eq(deckCards.zone, zone)
-    )
-  );
+  await db
+    .delete(deckCards)
+    .where(
+      and(eq(deckCards.deck_id, deck.id), eq(deckCards.card_id, card_id), eq(deckCards.zone, zone))
+    );
 
   return json({ success: true });
 }

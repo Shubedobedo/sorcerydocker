@@ -43,10 +43,7 @@ export async function POST({ locals, request }) {
   }
 
   // Check if entry already exists for this card+set
-  const conditions = [
-    eq(collections.user_id, session.user.id),
-    eq(collections.card_id, card_id)
-  ];
+  const conditions = [eq(collections.user_id, session.user.id), eq(collections.card_id, card_id)];
   if (set_id) conditions.push(eq(collections.set_id, set_id));
 
   const existing = await db.query.collections.findFirst({
@@ -57,7 +54,9 @@ export async function POST({ locals, request }) {
     // If 'add' is true, add to existing quantity. Otherwise set to the given quantity.
     const newQty = add
       ? existing.quantity + (quantity || 1)
-      : (quantity !== undefined ? quantity : existing.quantity + 1);
+      : quantity !== undefined
+        ? quantity
+        : existing.quantity + 1;
     if (newQty <= 0) {
       await db.delete(collections).where(eq(collections.id, existing.id));
       return json({ success: true, removed: true });
@@ -84,10 +83,7 @@ export async function DELETE({ locals, request }) {
 
   const { card_id, set_id } = await request.json();
 
-  const conditions = [
-    eq(collections.user_id, session.user.id),
-    eq(collections.card_id, card_id)
-  ];
+  const conditions = [eq(collections.user_id, session.user.id), eq(collections.card_id, card_id)];
   if (set_id) conditions.push(eq(collections.set_id, set_id));
 
   await db.delete(collections).where(and(...conditions));

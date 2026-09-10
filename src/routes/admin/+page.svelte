@@ -65,7 +65,9 @@
     } else {
       const json = await res.json();
       roleError = json.error || 'Failed to update role';
-      setTimeout(() => { roleError = ''; }, 4000);
+      setTimeout(() => {
+        roleError = '';
+      }, 4000);
     }
   }
 </script>
@@ -117,12 +119,19 @@
     {/if}
 
     {#if data.lastPriceSync}
-      <p class="last-sync">Last price sync: {new Date(data.lastPriceSync).toLocaleString()} &middot; {data.priceRowCount} price entries</p>
+      <p class="last-sync">
+        Last price sync: {new Date(data.lastPriceSync).toLocaleString()} &middot; {data.priceRowCount}
+        price entries
+      </p>
     {:else}
       <p class="last-sync">Prices never synced</p>
     {/if}
 
-    <button class="btn btn-primary" onclick={syncPrices} disabled={syncingPrices || !data.tcgApiConfigured}>
+    <button
+      class="btn btn-primary"
+      onclick={syncPrices}
+      disabled={syncingPrices || !data.tcgApiConfigured}
+    >
       {#if syncingPrices}
         Syncing prices...
       {:else}
@@ -132,9 +141,10 @@
 
     {#if priceSyncResult}
       <div class="sync-result success">
-        Price sync complete: {priceSyncResult.priceRows} prices across {priceSyncResult.setsProcessed} sets
-        ({priceSyncResult.matched} matched, {priceSyncResult.unmatched} unmatched).
-        {#if priceSyncResult.stoppedEarly}<br />Stopped early due to daily rate limit — run again tomorrow to finish.{/if}
+        Price sync complete: {priceSyncResult.priceRows} prices across {priceSyncResult.setsProcessed}
+        sets ({priceSyncResult.matched} matched, {priceSyncResult.unmatched} unmatched).
+        {#if priceSyncResult.stoppedEarly}<br />Stopped early due to daily rate limit — run again
+          tomorrow to finish.{/if}
         {#if priceSyncResult.rateRemaining != null}<br />API requests remaining today: {priceSyncResult.rateRemaining}{/if}
       </div>
     {/if}
@@ -175,10 +185,7 @@
                   Make Admin
                 </button>
               {:else}
-                <button
-                  class="btn btn-secondary btn-sm"
-                  onclick={() => setRole(user.id, 'member')}
-                >
+                <button class="btn btn-secondary btn-sm" onclick={() => setRole(user.id, 'member')}>
                   Make Member
                 </button>
               {/if}

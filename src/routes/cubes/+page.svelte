@@ -7,17 +7,57 @@
   let creating = $state(false);
 
   const adjectives = [
-    'Thundering', 'Gilded', 'Phantom', 'Crimson', 'Arcane', 'Volatile',
-    'Ancient', 'Whispering', 'Forbidden', 'Shattered', 'Primordial', 'Infernal',
-    'Frostbitten', 'Twilight', 'Chaotic', 'Celestial', 'Sunken', 'Molten',
-    'Spectral', 'Eldritch', 'Withered', 'Savage', 'Enchanted', 'Blighted'
+    'Thundering',
+    'Gilded',
+    'Phantom',
+    'Crimson',
+    'Arcane',
+    'Volatile',
+    'Ancient',
+    'Whispering',
+    'Forbidden',
+    'Shattered',
+    'Primordial',
+    'Infernal',
+    'Frostbitten',
+    'Twilight',
+    'Chaotic',
+    'Celestial',
+    'Sunken',
+    'Molten',
+    'Spectral',
+    'Eldritch',
+    'Withered',
+    'Savage',
+    'Enchanted',
+    'Blighted'
   ];
 
   const nouns = [
-    'Labyrinth', 'Abyss', 'Crucible', 'Sanctum', 'Nexus', 'Spire',
-    'Vault', 'Cauldron', 'Arena', 'Forge', 'Tomb', 'Citadel',
-    'Rift', 'Maelstrom', 'Obelisk', 'Grimoire', 'Pyre', 'Dominion',
-    'Hollows', 'Convergence', 'Reliquary', 'Gauntlet', 'Threshold', 'Wellspring'
+    'Labyrinth',
+    'Abyss',
+    'Crucible',
+    'Sanctum',
+    'Nexus',
+    'Spire',
+    'Vault',
+    'Cauldron',
+    'Arena',
+    'Forge',
+    'Tomb',
+    'Citadel',
+    'Rift',
+    'Maelstrom',
+    'Obelisk',
+    'Grimoire',
+    'Pyre',
+    'Dominion',
+    'Hollows',
+    'Convergence',
+    'Reliquary',
+    'Gauntlet',
+    'Threshold',
+    'Wellspring'
   ];
 
   function randomCubeName() {
@@ -88,9 +128,22 @@
   {#if showCreate}
     <div class="create-form">
       <div class="name-row">
-        <input type="text" class="input" placeholder="Cube name" bind:value={newName}
-          onkeydown={(e) => { if (e.key === 'Enter') createCube(); }} />
-        <button class="btn btn-secondary reroll-btn" onclick={() => { newName = randomCubeName(); }} title="Random name">&#x1F3B2;</button>
+        <input
+          type="text"
+          class="input"
+          placeholder="Cube name"
+          bind:value={newName}
+          onkeydown={(e) => {
+            if (e.key === 'Enter') createCube();
+          }}
+        />
+        <button
+          class="btn btn-secondary reroll-btn"
+          onclick={() => {
+            newName = randomCubeName();
+          }}
+          title="Random name">&#x1F3B2;</button
+        >
       </div>
       <button class="btn btn-primary" onclick={createCube} disabled={creating}>
         {creating ? 'Creating...' : 'Create'}
@@ -99,8 +152,8 @@
   {/if}
 
   {#if data.userCubes.length > 0}
-    {@const activeCubes = data.userCubes.filter(c => c.visibility !== 'archived')}
-    {@const archivedCubes = data.userCubes.filter(c => c.visibility === 'archived')}
+    {@const activeCubes = data.userCubes.filter((c) => c.visibility !== 'archived')}
+    {@const archivedCubes = data.userCubes.filter((c) => c.visibility === 'archived')}
 
     {#if activeCubes.length > 0}
       <section class="cube-section">
@@ -114,8 +167,12 @@
               </a>
               <div class="cube-actions">
                 <a href="/cubes/{cube.slug}/edit" class="btn btn-secondary btn-sm">Edit</a>
-                <button class="btn btn-secondary btn-sm" onclick={() => archiveCube(cube.id)}>Archive</button>
-                <button class="btn btn-danger btn-sm" onclick={() => deleteCube(cube.id)}>Delete</button>
+                <button class="btn btn-secondary btn-sm" onclick={() => archiveCube(cube.id)}
+                  >Archive</button
+                >
+                <button class="btn btn-danger btn-sm" onclick={() => deleteCube(cube.id)}
+                  >Delete</button
+                >
               </div>
             </div>
           {/each}
@@ -134,8 +191,12 @@
                 <span class="cube-meta">archived</span>
               </a>
               <div class="cube-actions">
-                <button class="btn btn-secondary btn-sm" onclick={() => unarchiveCube(cube.id)}>Restore</button>
-                <button class="btn btn-danger btn-sm" onclick={() => deleteCube(cube.id)}>Delete</button>
+                <button class="btn btn-secondary btn-sm" onclick={() => unarchiveCube(cube.id)}
+                  >Restore</button
+                >
+                <button class="btn btn-danger btn-sm" onclick={() => deleteCube(cube.id)}
+                  >Delete</button
+                >
               </div>
             </div>
           {/each}
@@ -162,23 +223,91 @@
 </div>
 
 <style>
-  .cubes-page { padding: 2rem 1rem; }
-  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
-  .page-header h1 { margin: 0; }
-  .create-form { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; padding: 1rem; background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); align-items: center; }
-  .create-form .name-row { display: flex; gap: 0.5rem; flex: 1; }
-  .create-form .input { flex: 1; }
-  .reroll-btn { padding: 0.5rem; font-size: 1rem; line-height: 1; }
-  .cube-section { margin-bottom: 2rem; }
-  .cube-section h2 { font-size: 1.1rem; margin-bottom: 1rem; color: var(--color-text-muted); }
-  .cube-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
-  .cube-card { padding: 1rem; background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); transition: border-color 0.2s; }
-  .cube-card:hover { border-color: var(--color-primary); }
-  .cube-link { text-decoration: none; display: block; }
-  .cube-link h3 { margin: 0 0 0.25rem; font-size: 1rem; color: var(--color-text); }
-  .cube-meta { font-size: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; }
-  .cube-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
-  .archived { opacity: 0.6; }
-  .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
-  .empty { color: var(--color-text-muted); }
+  .cubes-page {
+    padding: 2rem 1rem;
+  }
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+  .page-header h1 {
+    margin: 0;
+  }
+  .create-form {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    align-items: center;
+  }
+  .create-form .name-row {
+    display: flex;
+    gap: 0.5rem;
+    flex: 1;
+  }
+  .create-form .input {
+    flex: 1;
+  }
+  .reroll-btn {
+    padding: 0.5rem;
+    font-size: 1rem;
+    line-height: 1;
+  }
+  .cube-section {
+    margin-bottom: 2rem;
+  }
+  .cube-section h2 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    color: var(--color-text-muted);
+  }
+  .cube-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+  .cube-card {
+    padding: 1rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    transition: border-color 0.2s;
+  }
+  .cube-card:hover {
+    border-color: var(--color-primary);
+  }
+  .cube-link {
+    text-decoration: none;
+    display: block;
+  }
+  .cube-link h3 {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+    color: var(--color-text);
+  }
+  .cube-meta {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+  }
+  .cube-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+  .archived {
+    opacity: 0.6;
+  }
+  .btn-sm {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+  }
+  .empty {
+    color: var(--color-text-muted);
+  }
 </style>

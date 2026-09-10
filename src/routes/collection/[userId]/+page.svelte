@@ -5,7 +5,15 @@
   let { data } = $props();
 
   // Filters
-  let filters = $state({ types: [], elements: [], rarities: [], sets: [], cost: '', q: '', completion: '' });
+  let filters = $state({
+    types: [],
+    elements: [],
+    rarities: [],
+    sets: [],
+    cost: '',
+    q: '',
+    completion: ''
+  });
 
   const typeOptions = ['Minion', 'Magic', 'Aura', 'Artifact', 'Site', 'Avatar'];
   const elementOptions = ['Air', 'Earth', 'Fire', 'Water'];
@@ -66,12 +74,12 @@
     }
     if (filters.completion === 'missing') {
       result = result.filter((item) => {
-        const max = item.card.type === 'Avatar' ? 1 : (maxCopies[item.card.rarity] || 4);
+        const max = item.card.type === 'Avatar' ? 1 : maxCopies[item.card.rarity] || 4;
         return item.quantity < max;
       });
     } else if (filters.completion === 'extra') {
       result = result.filter((item) => {
-        const max = item.card.type === 'Avatar' ? 1 : (maxCopies[item.card.rarity] || 4);
+        const max = item.card.type === 'Avatar' ? 1 : maxCopies[item.card.rarity] || 4;
         return item.quantity > max;
       });
     }
@@ -143,7 +151,11 @@
           <div class="multi-select-dropdown">
             {#each typeOptions as t}
               <label class="checkbox-item">
-                <input type="checkbox" checked={filters.types.includes(t)} onchange={() => toggleFilter('types', t)} />
+                <input
+                  type="checkbox"
+                  checked={filters.types.includes(t)}
+                  onchange={() => toggleFilter('types', t)}
+                />
                 <span>{t}</span>
               </label>
             {/each}
@@ -160,7 +172,11 @@
           <div class="multi-select-dropdown">
             {#each elementOptions as el}
               <label class="checkbox-item">
-                <input type="checkbox" checked={filters.elements.includes(el)} onchange={() => toggleFilter('elements', el)} />
+                <input
+                  type="checkbox"
+                  checked={filters.elements.includes(el)}
+                  onchange={() => toggleFilter('elements', el)}
+                />
                 <span>{el}</span>
               </label>
             {/each}
@@ -177,7 +193,11 @@
           <div class="multi-select-dropdown">
             {#each rarityOptions as r}
               <label class="checkbox-item">
-                <input type="checkbox" checked={filters.rarities.includes(r)} onchange={() => toggleFilter('rarities', r)} />
+                <input
+                  type="checkbox"
+                  checked={filters.rarities.includes(r)}
+                  onchange={() => toggleFilter('rarities', r)}
+                />
                 <span>{r}</span>
               </label>
             {/each}
@@ -194,7 +214,11 @@
           <div class="multi-select-dropdown">
             {#each data.allSets as s}
               <label class="checkbox-item">
-                <input type="checkbox" checked={filters.sets.includes(s.id)} onchange={() => toggleFilter('sets', s.id)} />
+                <input
+                  type="checkbox"
+                  checked={filters.sets.includes(s.id)}
+                  onchange={() => toggleFilter('sets', s.id)}
+                />
                 <span>{s.name}</span>
               </label>
             {/each}
@@ -210,9 +234,27 @@
       </select>
 
       <div class="segmented-control">
-        <button class="seg-btn" class:active={filters.completion === ''} onclick={() => { filters.completion = ''; }}>All</button>
-        <button class="seg-btn" class:active={filters.completion === 'missing'} onclick={() => { filters.completion = 'missing'; }}>Missing</button>
-        <button class="seg-btn" class:active={filters.completion === 'extra'} onclick={() => { filters.completion = 'extra'; }}>Extra</button>
+        <button
+          class="seg-btn"
+          class:active={filters.completion === ''}
+          onclick={() => {
+            filters.completion = '';
+          }}>All</button
+        >
+        <button
+          class="seg-btn"
+          class:active={filters.completion === 'missing'}
+          onclick={() => {
+            filters.completion = 'missing';
+          }}>Missing</button
+        >
+        <button
+          class="seg-btn"
+          class:active={filters.completion === 'extra'}
+          onclick={() => {
+            filters.completion = 'extra';
+          }}>Extra</button
+        >
       </div>
 
       <button class="btn btn-secondary" onclick={clearFilters}>Clear</button>
@@ -247,48 +289,207 @@
 </div>
 
 <style>
-  .collection-page { padding: 2rem 1rem; }
-  .collection-header { margin-bottom: 1.5rem; }
-  .collection-header h1 { margin: 0.25rem 0 0; }
-  .back-link { font-size: 0.85rem; color: var(--color-text-muted); }
-  .collection-stats { display: flex; gap: 0.5rem; color: var(--color-text-muted); font-size: 0.875rem; margin-top: 0.25rem; }
+  .collection-page {
+    padding: 2rem 1rem;
+  }
+  .collection-header {
+    margin-bottom: 1.5rem;
+  }
+  .collection-header h1 {
+    margin: 0.25rem 0 0;
+  }
+  .back-link {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+  }
+  .collection-stats {
+    display: flex;
+    gap: 0.5rem;
+    color: var(--color-text-muted);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
 
-  .filters-bar { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; padding: 1rem; background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
-  .filter-row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
-  .search-input { flex: 1; min-width: 180px; }
-  .results-count { font-size: 0.8rem; color: var(--color-text-muted); margin: 0; }
+  .filters-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+  .filter-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .search-input {
+    flex: 1;
+    min-width: 180px;
+  }
+  .results-count {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
 
   /* Multi-select checkbox dropdown */
-  .multi-select { position: relative; }
-  .multi-select-trigger { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text); font-size: 0.85rem; cursor: pointer; white-space: nowrap; min-width: 120px; }
-  .multi-select-trigger:hover { border-color: var(--color-primary); }
-  .caret { font-size: 0.7rem; color: var(--color-text-muted); margin-left: auto; }
-  .multi-select-dropdown { position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%; background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); z-index: 100; max-height: 240px; overflow-y: auto; padding: 0.25rem 0; }
-  .checkbox-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.75rem; cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
-  .checkbox-item:hover { background-color: var(--color-bg-tertiary); }
-  .checkbox-item input[type="checkbox"] { accent-color: var(--color-primary); }
+  .multi-select {
+    position: relative;
+  }
+  .multi-select-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+    min-width: 120px;
+  }
+  .multi-select-trigger:hover {
+    border-color: var(--color-primary);
+  }
+  .caret {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+    margin-left: auto;
+  }
+  .multi-select-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 100%;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 0.25rem 0;
+  }
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  .checkbox-item:hover {
+    background-color: var(--color-bg-tertiary);
+  }
+  .checkbox-item input[type='checkbox'] {
+    accent-color: var(--color-primary);
+  }
 
   /* Segmented control */
-  .segmented-control { display: flex; border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; }
-  .seg-btn { padding: 0.45rem 0.75rem; background: none; border: none; border-right: 1px solid var(--color-border); color: var(--color-text-muted); font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
-  .seg-btn:last-child { border-right: none; }
-  .seg-btn:hover { background-color: var(--color-bg-tertiary); }
-  .seg-btn.active { background-color: var(--color-primary); color: white; font-weight: 500; }
+  .segmented-control {
+    display: flex;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+  .seg-btn {
+    padding: 0.45rem 0.75rem;
+    background: none;
+    border: none;
+    border-right: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .seg-btn:last-child {
+    border-right: none;
+  }
+  .seg-btn:hover {
+    background-color: var(--color-bg-tertiary);
+  }
+  .seg-btn.active {
+    background-color: var(--color-primary);
+    color: white;
+    font-weight: 500;
+  }
 
-  .collection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
-  .collection-card { background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: var(--radius-md); overflow: hidden; }
-  .card-image-link { display: block; aspect-ratio: 2.5 / 3.5; overflow: hidden; background-color: var(--color-surface); }
-  .card-image-link img { width: 100%; height: 100%; object-fit: cover; }
-  .card-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: var(--color-text-muted); padding: 0.5rem; text-align: center; }
-  .collection-card-info { padding: 0.5rem; display: flex; flex-direction: column; gap: 0.2rem; }
-  .card-name { font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .card-set { font-size: 0.7rem; color: var(--color-text-muted); }
-  .qty-display { font-size: 0.75rem; color: var(--color-text-muted); font-weight: 600; }
-  .empty { color: var(--color-text-muted); }
+  .collection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+  }
+  .collection-card {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+  .card-image-link {
+    display: block;
+    aspect-ratio: 2.5 / 3.5;
+    overflow: hidden;
+    background-color: var(--color-surface);
+  }
+  .card-image-link img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .card-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    padding: 0.5rem;
+    text-align: center;
+  }
+  .collection-card-info {
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .card-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-set {
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+  }
+  .qty-display {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+  }
+  .empty {
+    color: var(--color-text-muted);
+  }
 
   @media (max-width: 768px) {
-    .collection-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
-    .filter-row { flex-direction: column; }
-    .search-input { width: 100%; min-width: unset; }
+    .collection-grid {
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    }
+    .filter-row {
+      flex-direction: column;
+    }
+    .search-input {
+      width: 100%;
+      min-width: unset;
+    }
   }
 </style>

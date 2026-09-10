@@ -17,7 +17,10 @@ export async function POST({ locals }) {
     const response = await fetch('https://api.sorcerytcg.com/api/cards');
 
     if (!response.ok) {
-      return json({ error: 'Failed to fetch from Sorcery API', status: response.status }, { status: 502 });
+      return json(
+        { error: 'Failed to fetch from Sorcery API', status: response.status },
+        { status: 502 }
+      );
     }
 
     const data = await response.json();
@@ -31,7 +34,10 @@ export async function POST({ locals }) {
     for (const item of data) {
       // Parse elements into an array
       const elements = item.elements
-        ? item.elements.split(',').map((e) => e.trim()).filter(Boolean)
+        ? item.elements
+            .split(',')
+            .map((e) => e.trim())
+            .filter(Boolean)
         : [];
 
       // Use the card name as the basis for a unique ID and slug
@@ -108,11 +114,12 @@ export async function POST({ locals }) {
           if (setData.variants) {
             for (const variant of setData.variants) {
               const imageUrl = `${IMAGE_BASE_URL}/${variant.slug}.png`;
-              const artType = variant.finish === 'Foil'
-                ? 'foil'
-                : variant.finish === 'Rainbow'
-                  ? 'rainbow'
-                  : 'standard';
+              const artType =
+                variant.finish === 'Foil'
+                  ? 'foil'
+                  : variant.finish === 'Rainbow'
+                    ? 'rainbow'
+                    : 'standard';
 
               // Insert image
               await db.insert(cardImages).values({

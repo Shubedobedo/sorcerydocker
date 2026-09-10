@@ -8,7 +8,9 @@ export async function load({ locals }) {
   const session = await locals.auth();
   if (!session?.user) throw redirect(303, '/login');
 
-  const myFriendships = await db.select().from(friendships)
+  const myFriendships = await db
+    .select()
+    .from(friendships)
     .where(eq(friendships.user_id, session.user.id));
 
   const friends = [];
@@ -22,8 +24,12 @@ export async function load({ locals }) {
     }
   }
 
-  const incoming = await db.select().from(friendRequests)
-    .where(and(eq(friendRequests.to_user_id, session.user.id), eq(friendRequests.status, 'pending')));
+  const incoming = await db
+    .select()
+    .from(friendRequests)
+    .where(
+      and(eq(friendRequests.to_user_id, session.user.id), eq(friendRequests.status, 'pending'))
+    );
 
   const incomingEnriched = [];
   for (const req of incoming) {

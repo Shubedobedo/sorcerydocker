@@ -16,15 +16,9 @@ export async function load({ locals }) {
     where: eq(users.id, session.user.id)
   });
 
-  const userDecks = await db
-    .select()
-    .from(decks)
-    .where(eq(decks.user_id, session.user.id));
+  const userDecks = await db.select().from(decks).where(eq(decks.user_id, session.user.id));
 
-  const userCubes = await db
-    .select()
-    .from(cubes)
-    .where(eq(cubes.user_id, session.user.id));
+  const userCubes = await db.select().from(cubes).where(eq(cubes.user_id, session.user.id));
 
   return {
     user: dbUser,

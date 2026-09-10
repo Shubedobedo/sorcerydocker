@@ -20,13 +20,19 @@ export async function PATCH({ locals, request, params }) {
     if (!req) return json({ error: 'Request not found' }, { status: 404 });
 
     if (action === 'accept') {
-      await db.update(friendRequests).set({ status: 'accepted' }).where(eq(friendRequests.id, req.id));
+      await db
+        .update(friendRequests)
+        .set({ status: 'accepted' })
+        .where(eq(friendRequests.id, req.id));
       // Create friendships both ways
       await db.insert(friendships).values({ user_id: userId, friend_id: req.from_user_id });
       await db.insert(friendships).values({ user_id: req.from_user_id, friend_id: userId });
       return json({ success: true });
     } else {
-      await db.update(friendRequests).set({ status: 'rejected' }).where(eq(friendRequests.id, req.id));
+      await db
+        .update(friendRequests)
+        .set({ status: 'rejected' })
+        .where(eq(friendRequests.id, req.id));
       return json({ success: true });
     }
   }
@@ -39,9 +45,10 @@ export async function PATCH({ locals, request, params }) {
   if (share_trades !== undefined) updates.share_trades = share_trades ? 1 : 0;
 
   if (Object.keys(updates).length > 0) {
-    await db.update(friendships).set(updates).where(
-      and(eq(friendships.id, parseInt(params.id)), eq(friendships.user_id, userId))
-    );
+    await db
+      .update(friendships)
+      .set(updates)
+      .where(and(eq(friendships.id, parseInt(params.id)), eq(friendships.user_id, userId)));
   }
 
   return json({ success: true });
@@ -63,12 +70,12 @@ export async function DELETE({ locals, params }) {
   if (!friendship) return json({ error: 'Not found' }, { status: 404 });
 
   // Delete both directions
-  await db.delete(friendships).where(
-    and(eq(friendships.user_id, userId), eq(friendships.friend_id, friendship.friend_id))
-  );
-  await db.delete(friendships).where(
-    and(eq(friendships.user_id, friendship.friend_id), eq(friendships.friend_id, userId))
-  );
+  await db
+    .delete(friendships)
+    .where(and(eq(friendships.user_id, userId), eq(friendships.friend_id, friendship.friend_id)));
+  await db
+    .delete(friendships)
+    .where(and(eq(friendships.user_id, friendship.friend_id), eq(friendships.friend_id, userId)));
 
   return json({ success: true });
 }

@@ -48,7 +48,12 @@
   <div class="page-header">
     <h1>Decks</h1>
     {#if data.session?.user}
-      <button class="btn btn-primary" onclick={() => { showCreate = !showCreate; }}>
+      <button
+        class="btn btn-primary"
+        onclick={() => {
+          showCreate = !showCreate;
+        }}
+      >
         + New Deck
       </button>
     {/if}
@@ -61,7 +66,9 @@
         class="input"
         placeholder="Deck name"
         bind:value={newDeckName}
-        onkeydown={(e) => { if (e.key === 'Enter') createDeck(); }}
+        onkeydown={(e) => {
+          if (e.key === 'Enter') createDeck();
+        }}
       />
       <select class="select" bind:value={newDeckFormat}>
         <option value="standard">Standard</option>
@@ -76,7 +83,11 @@
           {/each}
         </select>
       {/if}
-      <button class="btn btn-primary" onclick={createDeck} disabled={creating || (newDeckFormat === 'cube' && !selectedCubeId)}>
+      <button
+        class="btn btn-primary"
+        onclick={createDeck}
+        disabled={creating || (newDeckFormat === 'cube' && !selectedCubeId)}
+      >
         {creating ? 'Creating...' : 'Create'}
       </button>
     </div>
@@ -94,7 +105,9 @@
             </a>
             <div class="deck-actions">
               <a href="/decks/{deck.slug}/edit" class="btn btn-secondary btn-sm">Edit</a>
-              <button class="btn btn-danger btn-sm" onclick={() => deleteDeck(deck.id)}>Delete</button>
+              <button class="btn btn-danger btn-sm" onclick={() => deleteDeck(deck.id)}
+                >Delete</button
+              >
             </div>
           </div>
         {/each}

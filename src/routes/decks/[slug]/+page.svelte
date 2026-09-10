@@ -68,7 +68,9 @@
     const json = await res.json();
     if (res.ok) {
       importResult = `Imported ${json.imported} cards (${json.skipped} skipped)`;
-      setTimeout(() => { window.location.reload(); }, 1500);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } else {
       importResult = json.error || 'Import failed';
     }
@@ -114,16 +116,29 @@
 
   {#if data.isOwner}
     <div class="deck-tools">
-      <a href="/api/decks/{data.deck.id}/export" class="btn btn-secondary" download>Export Decklist</a>
-      <button class="btn btn-secondary" onclick={() => { showImport = !showImport; }}>
+      <a href="/api/decks/{data.deck.id}/export" class="btn btn-secondary" download
+        >Export Decklist</a
+      >
+      <button
+        class="btn btn-secondary"
+        onclick={() => {
+          showImport = !showImport;
+        }}
+      >
         {showImport ? 'Cancel' : 'Import Decklist'}
       </button>
     </div>
 
     {#if showImport}
       <div class="import-panel">
-        <p class="import-hint">Paste a decklist. Use "// Atlas" and "// Spellbook" headers. Format: "4x Card Name"</p>
-        <textarea class="input import-textarea" bind:value={importText} placeholder={"// Atlas\n3x Dark Tower\n3x Gothic Tower\n\n// Spellbook\n4x Lightning Bolt\n3x Apprentice Wizard"}></textarea>
+        <p class="import-hint">
+          Paste a decklist. Use "// Atlas" and "// Spellbook" headers. Format: "4x Card Name"
+        </p>
+        <textarea
+          class="input import-textarea"
+          bind:value={importText}
+          placeholder={'// Atlas\n3x Dark Tower\n3x Gothic Tower\n\n// Spellbook\n4x Lightning Bolt\n3x Apprentice Wizard'}
+        ></textarea>
         <button class="btn btn-primary" onclick={importDeck}>Import</button>
         {#if importResult}
           <span class="import-result">{importResult}</span>
@@ -132,7 +147,7 @@
     {/if}
   {/if}
 
-  {#if (data.atlas.length + data.spellbook.length) > 0}
+  {#if data.atlas.length + data.spellbook.length > 0}
     <div class="deck-stats">
       <div class="stat-card">
         <h3>Mana Curve</h3>
@@ -153,7 +168,10 @@
             <div class="element-row">
               <span class="element-name">{element}</span>
               <div class="element-bar-bg">
-                <div class="element-bar element-{element.toLowerCase()}" style="width: {(count / (atlasCount + spellbookCount)) * 100}%"></div>
+                <div
+                  class="element-bar element-{element.toLowerCase()}"
+                  style="width: {(count / (atlasCount + spellbookCount)) * 100}%"
+                ></div>
               </div>
               <span class="element-count">{count}</span>
             </div>
@@ -185,7 +203,9 @@
         <div class="zone-cards">
           {#each Object.entries(atlasByElement) as [element, cards]}
             {#if cards.length > 0}
-              <h4 class="element-heading element-{element.toLowerCase()}">{element} ({cards.reduce((s, dc) => s + dc.quantity, 0)})</h4>
+              <h4 class="element-heading element-{element.toLowerCase()}">
+                {element} ({cards.reduce((s, dc) => s + dc.quantity, 0)})
+              </h4>
               <ul class="element-list">
                 {#each cards as dc}
                   <li>
@@ -208,13 +228,17 @@
         <div class="zone-cards">
           {#each Object.entries(spellbookByElement) as [element, cards]}
             {#if cards.length > 0}
-              <h4 class="element-heading element-{element.toLowerCase()}">{element} ({cards.reduce((s, dc) => s + dc.quantity, 0)})</h4>
+              <h4 class="element-heading element-{element.toLowerCase()}">
+                {element} ({cards.reduce((s, dc) => s + dc.quantity, 0)})
+              </h4>
               <ul class="element-list">
                 {#each cards as dc}
                   <li>
                     <span class="text-qty">{dc.quantity}x</span>
                     <a href="/cards/{dc.card.slug}" class="text-name">{dc.card.name}</a>
-                    <span class="text-meta">{dc.card.type}{dc.card.cost !== null ? ` · ${dc.card.cost}` : ''}</span>
+                    <span class="text-meta"
+                      >{dc.card.type}{dc.card.cost !== null ? ` · ${dc.card.cost}` : ''}</span
+                    >
                   </li>
                 {/each}
               </ul>
@@ -339,21 +363,68 @@
     gap: 0.2rem;
   }
 
-  .element-heading { font-size: 0.9rem; margin: 0.75rem 0 0.5rem; padding-bottom: 0.4rem; border-bottom: 2px solid var(--color-border); }
-  .element-heading:first-child { margin-top: 0; }
-  .element-heading.element-air { border-color: #7c9cbf; color: #7c9cbf; }
-  .element-heading.element-earth { border-color: #8b7d5b; color: #8b7d5b; }
-  .element-heading.element-fire { border-color: #c9583c; color: #c9583c; }
-  .element-heading.element-water { border-color: #4a8fa8; color: #4a8fa8; }
-  .element-heading.element-none { border-color: var(--color-text-muted); color: var(--color-text-muted); }
-  .element-heading.element-multi { border-color: var(--color-accent); color: var(--color-accent); }
+  .element-heading {
+    font-size: 0.9rem;
+    margin: 0.75rem 0 0.5rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--color-border);
+  }
+  .element-heading:first-child {
+    margin-top: 0;
+  }
+  .element-heading.element-air {
+    border-color: #7c9cbf;
+    color: #7c9cbf;
+  }
+  .element-heading.element-earth {
+    border-color: #8b7d5b;
+    color: #8b7d5b;
+  }
+  .element-heading.element-fire {
+    border-color: #c9583c;
+    color: #c9583c;
+  }
+  .element-heading.element-water {
+    border-color: #4a8fa8;
+    color: #4a8fa8;
+  }
+  .element-heading.element-none {
+    border-color: var(--color-text-muted);
+    color: var(--color-text-muted);
+  }
+  .element-heading.element-multi {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
 
-  .element-list { list-style: none; padding: 0; margin: 0; }
-  .element-list li { display: flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0; font-size: 0.8rem; }
-  .text-qty { color: var(--color-text-muted); min-width: 22px; font-weight: 600; }
-  .text-name { color: var(--color-text); flex: 1; }
-  .text-name:hover { color: var(--color-primary-hover); }
-  .text-meta { color: var(--color-text-muted); font-size: 0.7rem; }
+  .element-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .element-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0;
+    font-size: 0.8rem;
+  }
+  .text-qty {
+    color: var(--color-text-muted);
+    min-width: 22px;
+    font-weight: 600;
+  }
+  .text-name {
+    color: var(--color-text);
+    flex: 1;
+  }
+  .text-name:hover {
+    color: var(--color-primary-hover);
+  }
+  .text-meta {
+    color: var(--color-text-muted);
+    font-size: 0.7rem;
+  }
 
   .empty {
     color: var(--color-text-muted);
@@ -489,11 +560,21 @@
     min-width: 2px;
   }
 
-  .element-bar.element-air { background-color: #7c9cbf; }
-  .element-bar.element-earth { background-color: #8b7d5b; }
-  .element-bar.element-fire { background-color: #c9583c; }
-  .element-bar.element-water { background-color: #4a8fa8; }
-  .element-bar.element-none { background-color: var(--color-text-muted); }
+  .element-bar.element-air {
+    background-color: #7c9cbf;
+  }
+  .element-bar.element-earth {
+    background-color: #8b7d5b;
+  }
+  .element-bar.element-fire {
+    background-color: #c9583c;
+  }
+  .element-bar.element-water {
+    background-color: #4a8fa8;
+  }
+  .element-bar.element-none {
+    background-color: var(--color-text-muted);
+  }
 
   .element-count {
     font-size: 0.7rem;

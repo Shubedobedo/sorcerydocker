@@ -17,10 +17,7 @@ export async function POST({ locals, request, params }) {
   if (!cube) return json({ error: 'Cube not found' }, { status: 404 });
 
   // Get cube card pool
-  const cubeCardRows = await db
-    .select()
-    .from(cubeCards)
-    .where(eq(cubeCards.cube_id, cube.id));
+  const cubeCardRows = await db.select().from(cubeCards).where(eq(cubeCards.cube_id, cube.id));
 
   // Expand into individual cards
   const pool = [];
@@ -47,9 +44,12 @@ export async function POST({ locals, request, params }) {
   const totalCardsNeeded = totalPacks * cardsPerPack;
 
   if (pool.length < totalCardsNeeded) {
-    return json({
-      error: `Not enough cards in cube. Need ${totalCardsNeeded} but only have ${pool.length}.`,
-    }, { status: 400 });
+    return json(
+      {
+        error: `Not enough cards in cube. Need ${totalCardsNeeded} but only have ${pool.length}.`
+      },
+      { status: 400 }
+    );
   }
 
   const packs = [];

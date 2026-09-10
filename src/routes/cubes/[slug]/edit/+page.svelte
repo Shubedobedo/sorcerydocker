@@ -50,7 +50,9 @@
     });
     saving = false;
     genResult = 'Settings saved!';
-    setTimeout(() => { genResult = ''; }, 2000);
+    setTimeout(() => {
+      genResult = '';
+    }, 2000);
   }
 
   async function generatePool() {
@@ -71,7 +73,9 @@
       genResult = `Generated cube with ${json.poolSize} cards!`;
       if (json.warning) {
         genWarning = json.warning;
-        setTimeout(() => { genWarning = ''; }, 6000);
+        setTimeout(() => {
+          genWarning = '';
+        }, 6000);
       } else {
         genWarning = '';
       }
@@ -97,7 +101,14 @@
     <section class="setting-section">
       <h2>Cube Size</h2>
       <p>Total number of cards in the generated pool.</p>
-      <input type="number" class="input size-input" bind:value={settings.cubeSize} min="30" max="720" step="10" />
+      <input
+        type="number"
+        class="input size-input"
+        bind:value={settings.cubeSize}
+        min="30"
+        max="720"
+        step="10"
+      />
     </section>
 
     <section class="setting-section">
@@ -144,7 +155,13 @@
             </label>
             <div class="rarity-max">
               <span>Max:</span>
-              <input type="number" class="input max-input" bind:value={settings.rarities[rarity].max} min="1" max="10" />
+              <input
+                type="number"
+                class="input max-input"
+                bind:value={settings.rarities[rarity].max}
+                min="1"
+                max="10"
+              />
             </div>
           </div>
         {/each}
@@ -186,13 +203,30 @@
 {/if}
 
 <style>
-  .editor-page { padding: 2rem 1rem; }
-  .editor-header { margin-bottom: 2rem; }
-  .back-link { font-size: 0.85rem; color: var(--color-text-muted); }
-  .editor-header h1 { margin: 0.25rem 0 0.25rem; }
-  .subtitle { color: var(--color-text-muted); font-size: 0.9rem; margin: 0; }
+  .editor-page {
+    padding: 2rem 1rem;
+  }
+  .editor-header {
+    margin-bottom: 2rem;
+  }
+  .back-link {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+  }
+  .editor-header h1 {
+    margin: 0.25rem 0 0.25rem;
+  }
+  .subtitle {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+  }
 
-  .settings-grid { display: flex; flex-direction: column; gap: 1.5rem; }
+  .settings-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
 
   .setting-section {
     padding: 1.25rem;
@@ -200,12 +234,25 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
   }
-  .setting-section h2 { margin: 0 0 0.25rem; font-size: 1rem; }
-  .setting-section p { margin: 0 0 0.75rem; font-size: 0.8rem; color: var(--color-text-muted); }
+  .setting-section h2 {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+  }
+  .setting-section p {
+    margin: 0 0 0.75rem;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+  }
 
-  .size-input { width: 120px; }
+  .size-input {
+    width: 120px;
+  }
 
-  .chip-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .chip-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
   .chip {
     padding: 0.35rem 0.75rem;
     border: 1px solid var(--color-border);
@@ -216,17 +263,55 @@
     cursor: pointer;
     transition: all 0.15s;
   }
-  .chip:hover { border-color: var(--color-primary); color: var(--color-text); }
-  .chip.active { background-color: var(--color-primary); color: white; border-color: var(--color-primary); }
+  .chip:hover {
+    border-color: var(--color-primary);
+    color: var(--color-text);
+  }
+  .chip.active {
+    background-color: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+  }
 
-  .rarity-grid { display: flex; flex-direction: column; gap: 0.5rem; }
-  .rarity-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-  .rarity-toggle { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; cursor: pointer; }
-  .rarity-max { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: var(--color-text-muted); }
-  .max-input { width: 60px; }
+  .rarity-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .rarity-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .rarity-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .rarity-max {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+  }
+  .max-input {
+    width: 60px;
+  }
 
-  .actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
-  .gen-result { margin-top: 1rem; font-size: 0.875rem; color: var(--color-success); }
+  .actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+  .gen-result {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--color-success);
+  }
 
   .toast-warning {
     position: fixed;
@@ -246,7 +331,13 @@
   }
 
   @keyframes toast-in {
-    from { opacity: 0; transform: translateX(-50%) translateY(10px); }
-    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
   }
 </style>

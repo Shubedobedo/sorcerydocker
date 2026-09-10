@@ -26,7 +26,9 @@ export async function GET({ locals }) {
   }
 
   // Get pending requests TO me
-  const incoming = await db.select().from(friendRequests)
+  const incoming = await db
+    .select()
+    .from(friendRequests)
     .where(and(eq(friendRequests.to_user_id, userId), eq(friendRequests.status, 'pending')));
 
   const incomingEnriched = [];
@@ -41,7 +43,9 @@ export async function GET({ locals }) {
   }
 
   // Get pending requests FROM me
-  const outgoing = await db.select().from(friendRequests)
+  const outgoing = await db
+    .select()
+    .from(friendRequests)
     .where(and(eq(friendRequests.from_user_id, userId), eq(friendRequests.status, 'pending')));
 
   return json({ friends, incoming: incomingEnriched, outgoing });
@@ -95,7 +99,10 @@ export async function POST({ locals, request }) {
 
   if (theirReq) {
     // Auto-accept: create friendships both ways
-    await db.update(friendRequests).set({ status: 'accepted' }).where(eq(friendRequests.id, theirReq.id));
+    await db
+      .update(friendRequests)
+      .set({ status: 'accepted' })
+      .where(eq(friendRequests.id, theirReq.id));
     await db.insert(friendships).values({ user_id: userId, friend_id: targetUser.id });
     await db.insert(friendships).values({ user_id: targetUser.id, friend_id: userId });
     return json({ success: true, message: 'Friend added!' });
