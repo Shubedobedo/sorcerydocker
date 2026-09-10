@@ -336,8 +336,9 @@
           {/if}
         {:else}
           <div class="collection-form">
-            <label class="form-label">Quantity</label>
-            <div class="qty-row">
+            <!-- Not a <label>: it names a group of buttons, not a single control. -->
+            <span class="form-label" id="collection-qty-label">Quantity</span>
+            <div class="qty-row" role="group" aria-labelledby="collection-qty-label">
               <button
                 class="qty-btn"
                 onclick={() => {

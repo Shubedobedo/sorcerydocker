@@ -325,6 +325,16 @@
   }
 </script>
 
+<!-- Escape is the keyboard equivalent of clicking the backdrop, so the overlays
+     don't need (and shouldn't have) their own key handlers. -->
+<svelte:window
+  onkeydown={(e) => {
+    if (e.key !== 'Escape') return;
+    if (tradeModalItem) tradeModalItem = null;
+    else if (showCsvPanel) showCsvPanel = false;
+  }}
+/>
+
 <svelte:head>
   <title>Collection - Sorcery TCG</title>
 </svelte:head>
@@ -527,8 +537,12 @@
 
 <!-- CSV Slide Panel -->
 {#if showCsvPanel}
+  <!-- Click-to-dismiss backdrop. role="presentation" because it carries no
+       meaning of its own; Escape is handled by the <svelte:window> above, which
+       is the keyboard equivalent of clicking outside. -->
   <div
     class="panel-overlay"
+    role="presentation"
     onclick={() => {
       showCsvPanel = false;
     }}
@@ -579,19 +593,24 @@
 {/if}
 
 {#if tradeModalItem}
+  <!-- Dismiss only when the backdrop itself is clicked; testing the event target
+       replaces the inner stopPropagation handler, which was a click handler on a
+       non-interactive div purely to block bubbling. -->
   <div
     class="modal-overlay"
-    onclick={() => {
-      tradeModalItem = null;
+    role="presentation"
+    onclick={(e) => {
+      if (e.target === e.currentTarget) tradeModalItem = null;
     }}
   >
-    <div class="modal" onclick={(e) => e.stopPropagation()}>
-      <h3>Mark for Trade</h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="trade-modal-title">
+      <h3 id="trade-modal-title">Mark for Trade</h3>
       <p class="modal-card-name">{tradeModalItem.card.name}</p>
       <p class="modal-hint">You have {tradeModalItem.quantity} in your collection</p>
 
-      <label class="modal-label">Quantity to trade</label>
-      <div class="modal-qty">
+      <!-- Not a <label>: it names a group of buttons, not a single form control. -->
+      <span class="modal-label" id="trade-qty-label">Quantity to trade</span>
+      <div class="modal-qty" role="group" aria-labelledby="trade-qty-label">
         <button
           class="qty-btn"
           onclick={() => {
