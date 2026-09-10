@@ -99,6 +99,12 @@ npm run dev:login      # mint an Auth.js session cookie to skip the Google login
 - Docker: `docker compose up --build` runs the app on port 3000 with a persistent
   `sorcery-data` volume. CI (`.github/workflows/docker-publish.yml`) builds and pushes
   a `ghcr.io` image on every push to `master`.
+- `gh` is **not on the PATH** that Claude Code's Bash tool inherits, so `gh pr create` and
+  friends fail with `command not found`. Call it by full path instead:
+  `"/c/Program Files/GitHub CLI/gh.exe"`. There is nothing wrong with the install —
+  `gh` works normally in a regular terminal.
+- There is no Python on this machine; `python` hits the Windows Store alias stub and
+  exits 49. Use `node -e` for one-off scripting.
 
 ## MCP
 
