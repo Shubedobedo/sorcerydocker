@@ -190,6 +190,13 @@
   }
 </script>
 
+<!-- Escape mirrors clicking the backdrop. -->
+<svelte:window
+  onkeydown={(e) => {
+    if (e.key === 'Escape' && confirmModal) confirmModal = null;
+  }}
+/>
+
 <svelte:head>
   <title>Trade Binder - Sorcery TCG</title>
 </svelte:head>
@@ -337,8 +344,8 @@
               {#if editingId === trade.id}
                 <div class="edit-form">
                   {#if trade.availableSets && trade.availableSets.length > 1}
-                    <label class="edit-label">Set</label>
-                    <select class="select" bind:value={editSet}>
+                    <label class="edit-label" for="edit-set-{trade.id}">Set</label>
+                    <select id="edit-set-{trade.id}" class="select" bind:value={editSet}>
                       {#each trade.availableSets as setName}
                         <option value={setName}>{setName}</option>
                       {/each}
@@ -436,14 +443,17 @@
 </div>
 
 {#if confirmModal}
+  <!-- Dismiss only on the backdrop itself; testing the event target replaces the
+       inner stopPropagation handler, which existed purely to block bubbling. -->
   <div
     class="modal-overlay"
-    onclick={() => {
-      confirmModal = null;
+    role="presentation"
+    onclick={(e) => {
+      if (e.target === e.currentTarget) confirmModal = null;
     }}
   >
-    <div class="modal" onclick={(e) => e.stopPropagation()}>
-      <h3>{confirmModal.title}</h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+      <h3 id="confirm-modal-title">{confirmModal.title}</h3>
       <p class="modal-message">{confirmModal.message}</p>
       <div class="modal-actions">
         <button class="btn btn-primary" onclick={confirmModal.onConfirm}>Confirm</button>

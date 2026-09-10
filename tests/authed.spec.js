@@ -143,3 +143,35 @@ test.describe('collection quantity controls', () => {
     await expect(after).toHaveText(String(start));
   });
 });
+
+test.describe('trade modal dismissal', () => {
+  test.beforeEach(async ({ context }) => {
+    await signIn(context, 'member');
+  });
+
+  // The backdrop dismisses by testing e.target === e.currentTarget, which
+  // replaced a stopPropagation handler on the modal body. If that check were
+  // wrong, clicking inside the modal would close it.
+  test('closes on backdrop click and Escape, but not on clicks inside', async ({ page }) => {
+    await gotoHydrated(page, '/collection');
+
+    const overlay = page.locator('.modal-overlay');
+    const modal = page.locator('.modal');
+
+    await page.locator('.collection-card').first().locator('.trade-btn').click();
+    await expect(modal).toBeVisible();
+
+    // A click on the modal body must NOT dismiss it.
+    await modal.locator('h3').click();
+    await expect(modal).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(overlay).toHaveCount(0);
+
+    // Reopen and dismiss by clicking the backdrop itself, away from the modal.
+    await page.locator('.collection-card').first().locator('.trade-btn').click();
+    await expect(modal).toBeVisible();
+    await overlay.click({ position: { x: 5, y: 5 } });
+    await expect(overlay).toHaveCount(0);
+  });
+});
