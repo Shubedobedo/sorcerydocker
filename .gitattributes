@@ -1,0 +1,11 @@
+# Your global git config has core.autocrlf=true, which checks files out with CRLF.
+# Prettier writes LF, so without this every checkout would make `prettier --check`
+# flag the entire codebase. Force LF in the repo AND the working tree — this also
+# matches the Linux container the app is built and run in.
+* text=auto eol=lf
+
+# Binary / generated files git should never touch
+*.db binary
+*.png binary
+*.svg text eol=lf
+package-lock.json -diff
