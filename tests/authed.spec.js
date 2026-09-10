@@ -213,3 +213,58 @@ test.describe('friend sharing is one-directional', () => {
     expect(res.status()).toBe(403);
   });
 });
+
+// The deck export endpoint returns a full decklist for any deck id. It must
+// apply the same gate as the deck page's load: owners always, non-owners only
+// when visibility allows it. A miss here leaks private decks to anyone who can
+// guess an id, so both halves are pinned.
+test.describe('deck export respects deck visibility', () => {
+  /** Creates a deck owned by the member and returns it. */
+  async function createDeck(page) {
+    const res = await page.request.post('/api/decks', {
+      data: { name: `E2E Export ${Date.now()}`, format: 'standard' }
+    });
+    expect(res.status()).toBe(201);
+    return res.json();
+  }
+
+  test('the owner can export their own private deck', async ({ page, context }) => {
+    await signIn(context, 'member');
+    const deck = await createDeck(page);
+
+    const res = await page.request.get(`/api/decks/${deck.id}/export`);
+    expect(res.status()).toBe(200);
+    expect(await res.text()).toContain(deck.name);
+
+    await page.request.delete(`/api/decks/${deck.id}`);
+  });
+
+  test('a signed-out request cannot export a private deck', async ({ page, context, request }) => {
+    await signIn(context, 'member');
+    const deck = await createDeck(page);
+
+    // `request` is the standalone fixture with its own empty cookie jar, so this
+    // is a genuinely anonymous call rather than the member's session.
+    const res = await request.get(`/api/decks/${deck.id}/export`);
+    expect(res.status()).toBe(404);
+
+    await page.request.delete(`/api/decks/${deck.id}`);
+  });
+
+  test('another signed-in user cannot export a private deck', async ({
+    page,
+    context,
+    browser
+  }) => {
+    await signIn(context, 'member');
+    const deck = await createDeck(page);
+
+    const other = await browser.newContext();
+    await signIn(other, 'admin');
+    const res = await other.request.get(`/api/decks/${deck.id}/export`);
+    expect(res.status()).toBe(404);
+    await other.close();
+
+    await page.request.delete(`/api/decks/${deck.id}`);
+  });
+});

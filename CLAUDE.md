@@ -193,12 +193,23 @@ JSON endpoints under `src/routes/api/**/+server.js`. Global styles and design to
 - `loadPriceResolver()` in `priceSync.js` returns `{ resolve, setsForCard }` helpers
   used by pages to attach prices to cards; it has a hardcoded `SET_ORDER` release list.
 
-### Collection / deck CSV format
+### Import / export formats
 
-Import/export (`/api/collection/import|export`, `/api/decks/[id]/import|export`) use the
-Curiosa CSV format: `card name,set,finish,product,quantity,notes`. Import also accepts a
-legacy `card_id` column. `quantity <= 0` on import deletes the matching collection row;
-copies from different sets are tracked as separate rows (matched on `card_id` + `set_id`).
+Collection and decks use **different** formats — they are not a shared code path.
+
+- **Collection** (`/api/collection/import|export`) uses the Curiosa CSV format:
+  `card name,set,finish,product,quantity,notes`. Import also accepts a legacy `card_id`
+  column. `quantity <= 0` on import deletes the matching collection row; copies from
+  different sets are tracked as separate rows (matched on `card_id` + `set_id`).
+- **Decks** (`/api/decks/[id]/import|export`) use a plain-text decklist, **not** CSV:
+  `//`-prefixed comments, `// Atlas` / `// Spellbook` zone headers, and one
+  `4x Card Name` line per entry. The UI for both is on the deck page
+  (`src/routes/decks/[slug]/+page.svelte`), owner-only. Import is lenient about input
+  (`4x Name`, `4 Name` or a bare `Name`; headers may be `Atlas`, `Atlas:` or `// Atlas`)
+  and routes any card of type `Site` to the atlas regardless of the current header.
+  Unmatched names are counted in `skipped` rather than failing the request.
+  - **Deck import is destructive**: it deletes every `deck_cards` row for the deck
+    _before_ parsing, so a paste that matches nothing leaves an empty deck.
 
 ### Sharing / visibility model
 
@@ -207,3 +218,9 @@ copies from different sets are tracked as separate rows (matched on `card_id` + 
 `visibility`, then (for friends-visibility) a `friendships` row between the owner and
 viewer. Trade binders and collections of friends are exposed on `/collection/[userId]`
 and `/friends/[id]` subject to the friendship share flags.
+
+**API endpoints need the same gate as the page `load`, and it is easy to miss** — there
+is no route-group guard, and a `GET` handler that only looks a row up by id will happily
+serve a private record to anyone who guesses the id (this was a real bug in
+`/api/decks/[id]/export`). Gates on a read return **404, not 403**, so the response does
+not confirm that a private row exists at that id.
