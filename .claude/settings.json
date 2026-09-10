@@ -15,7 +15,10 @@
       "Bash(npx prettier:*)",
       "Bash(npm ci)",
       "Bash(npm install:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(rm -r .playwright-mcp)",
+      "Bash(rm -r .playwright-mcp/:*)",
+      "Bash(rm .playwright-mcp/:*)"
     ],
     "deny": [
       "Bash(git push --force:*)",

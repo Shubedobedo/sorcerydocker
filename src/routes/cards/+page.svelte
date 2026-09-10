@@ -1,23 +1,37 @@
 <script>
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
 
   let { data } = $props();
 
-  let filters = $state({
-    q: data.filters.q || '',
-    types: data.filters.type ? data.filters.type.split(',') : [],
-    elements: data.filters.element ? data.filters.element.split(',') : [],
-    rarities: data.filters.rarity ? data.filters.rarity.split(',') : [],
-    sets: data.filters.set ? data.filters.set.split(',') : [],
-    cost: data.filters.cost || '',
-    subtype: data.filters.subtype || ''
-  });
-  let cardList = $state([...data.cards]);
+  // The server sends filters as comma-joined query params; the UI wants arrays.
+  function parseFilters(f) {
+    return {
+      q: f.q || '',
+      types: f.type ? f.type.split(',') : [],
+      elements: f.element ? f.element.split(',') : [],
+      rarities: f.rarity ? f.rarity.split(',') : [],
+      sets: f.set ? f.set.split(',') : [],
+      cost: f.cost || '',
+      subtype: f.subtype || ''
+    };
+  }
+
+  // `filters` is edited in place by the controls (bind:value needs a $state
+  // proxy, so this can't be a $derived), and re-synced from the server on
+  // navigation by the $effect below. `untrack` marks the initial read of
+  // `data` as the deliberate one-time snapshot it is.
+  let filters = $state(untrack(() => parseFilters(data.filters)));
+
+  // Derived from the load function, but reassigned by loadMore() to append the
+  // next page. Reassignment overrides a derived until its dependency changes,
+  // so navigating to new filters resets both back to the fresh server page.
+  let cardList = $derived(data.cards);
+  let hasMore = $derived(data.cards.length === 24);
+
   let currentPage = $state(1);
   let loading = $state(false);
-  let hasMore = $state(data.cards.length === 24);
   let sentinel = $state(null);
 
   const typeOptions = ['Minion', 'Magic', 'Aura', 'Artifact', 'Site', 'Avatar'];
@@ -95,21 +109,13 @@
     goto('/cards', { invalidateAll: true });
   }
 
-  // Reset card list when server data changes (filters applied via navigation)
+  // `cardList`/`hasMore` reset themselves (they're derived from `data`), but the
+  // editable filter proxy and the page counter still need resetting whenever a
+  // navigation swaps in a new server payload.
   $effect(() => {
     const _url = $page.url.search;
-    cardList = [...data.cards];
-    filters = {
-      q: data.filters.q || '',
-      types: data.filters.type ? data.filters.type.split(',') : [],
-      elements: data.filters.element ? data.filters.element.split(',') : [],
-      rarities: data.filters.rarity ? data.filters.rarity.split(',') : [],
-      sets: data.filters.set ? data.filters.set.split(',') : [],
-      cost: data.filters.cost || '',
-      subtype: data.filters.subtype || ''
-    };
+    filters = parseFilters(data.filters);
     currentPage = 1;
-    hasMore = data.cards.length === 24;
   });
 
   onMount(() => {
@@ -441,19 +447,6 @@
     overflow: hidden;
     background-color: var(--color-surface);
     position: relative;
-  }
-
-  .owned-badge {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    background-color: var(--color-primary);
-    color: white;
-    font-size: 0.65rem;
-    font-weight: 600;
-    padding: 0.15rem 0.4rem;
-    border-radius: var(--radius-sm);
-    z-index: 1;
   }
 
   .card-image-wrapper img {

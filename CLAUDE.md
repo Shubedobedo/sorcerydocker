@@ -51,6 +51,20 @@ guidance — especially runes, the current component API, and migration question
 rather than relying on older training knowledge. On first use Claude Code will prompt
 to approve the project-scoped server.
 
+The Playwright MCP server is also available (installed as a user-scope plugin, not via
+`.mcp.json`). Since there are no tests, driving the dev server in a real browser is the
+main way to verify UI behaviour beyond `npm run build` — `/cards` is a good target
+because its `load` calls `locals.auth()` but never redirects, so it renders fine while
+signed out. Its tool calls are executed live against a browser session and are **not
+saved as replayable scripts**; each run has to be re-driven by hand.
+
+- **Write every Playwright artifact under `.playwright-mcp/`** — pass an explicit
+  `filename` like `.playwright-mcp/foo.png` for screenshots rather than a bare name,
+  which lands in the repo root. `.claude/settings.json` allows `rm -r .playwright-mcp`
+  (and paths beneath it) precisely so this junk can be cleaned up without a prompt;
+  nothing outside that directory can be deleted, and the blanket `Bash(rm -rf:*)` deny
+  still blocks any `-rf` delete everywhere, including inside it. Use `rm -r`, not `rm -rf`.
+
 ## Environment
 
 Copy `.env.example` to `.env`. Variables:
