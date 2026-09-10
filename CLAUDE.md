@@ -27,16 +27,62 @@ npm run format:check   # prettier --check . (verify, don't write)
 npm run db:generate    # drizzle-kit: generate a migration from schema.js
 npm run db:migrate     # drizzle-kit: apply migrations in ./drizzle
 npm run db:studio      # drizzle-kit studio (browse the DB)
+npm test               # playwright test (browser E2E; boots the dev server itself)
+npm run test:ui        # playwright test --ui (interactive runner)
+npm run dev:login      # mint an Auth.js session cookie to skip the Google login
 ```
 
-- **Verifying a change**: there are no tests and no type checking. `npm run build` is
-  the only automated check that a change compiles — run it after editing `.svelte` or
-  `.js` files. Beyond that, verification means running the app.
+- **Signing in locally without Google**: `npm run dev:login` prints a `document.cookie`
+  line to paste into DevTools (and a `Cookie:` header for curl). Auth.js runs
+  adapter-less on the JWT strategy, so `AUTH_SECRET` alone can sign a valid session —
+  the script only reads users that already exist, so it cannot invent an admin. Pass an
+  email to pick a user, or `--db data/e2e.db` to target the test database. **Never add a
+  test-only auth bypass to `hooks.server.js`**; minting a real cookie is the supported path.
+
+- **Verifying a change**: there is no type checking. `npm run build` is the only check
+  that a change compiles — run it after editing `.svelte` or `.js` files — and
+  `npm test` covers the `/cards` browser flows. Beyond that, verification means
+  running the app.
 - Prettier is configured (`.prettierrc`: 2-space, single quotes, no trailing commas,
   100 cols). `.gitattributes` forces LF line endings — the repo is developed on Windows
   with `core.autocrlf=true`, and without it every checkout would leave `prettier --check`
   flagging the whole codebase.
-- No test runner or linter is configured. There are no tests.
+- No linter is configured. The only tests are Playwright E2E specs in `./tests`
+  (`playwright.config.js`). They drive a real browser on **port 5199** against an
+  **isolated `data/e2e.db`**, so they never touch `data/sorcery.db` and a dev server
+  you already have open on 5173 is left alone. Assertions use relative counts and read
+  the "N cards found" label rather than hardcoding a catalog size, so re-syncing cards
+  won't break them.
+  - `tests/seed-e2e-db.js` rebuilds `data/e2e.db` before every run: `VACUUM INTO` copies
+    the card catalog from `data/sorcery.db` (so that file **must exist** — sync cards
+    first), then wipes users/decks/collections/cubes/trades, seeds the two test users
+    from `tests/helpers/auth.js`, and gives the member user ~700 collection rows so
+    pages are exercised with realistic volume. It is chained into `webServer.command`
+    rather than used as `globalSetup` because **Playwright starts `webServer` before
+    `globalSetup`** — as a globalSetup the dev server would already hold the file open
+    and the rebuild would fail with `EBUSY`.
+  - **Known blind spot**: some bugs reproduce only against the real database. The
+    `replaceState`-before-router-init throw on `/collection` fires every time against
+    `data/sorcery.db` but has never been reproduced against the seed — not at matching
+    row counts, not under 20x CPU throttling. When chasing a hydration-timing bug,
+    verify against a real-data dev server (`npm run dev:login` + port 5173), not just
+    the suite.
+  - **Auth**: `hooks.server.js` calls `SvelteKitAuth()` with no database adapter, so
+    Auth.js uses the JWT strategy and the whole session is one cookie encrypted with
+    `AUTH_SECRET` (the `sessions`/`accounts` tables are unused). `tests/helpers/auth.js`
+    mints that cookie with `encode()` from `@auth/core/jwt`, so **there is no test-only
+    auth bypass in application code** — keep it that way. Requires a real `AUTH_SECRET`
+    in `.env`; `webServer` also sets `TCGAPI_KEY=''` so `priceScheduler.js` skips the
+    live price sync instead of burning the daily quota.
+  - Use **`page.request`**, not the standalone `request` fixture, for authenticated API
+    calls — the latter has its own cookie jar and will get a 401.
+  - **Gotcha**: the filter controls are plain inputs with `on*` handlers — no `<form>`,
+    no `action` — so they do nothing until hydration, and `bind:value` re-applies the
+    server value over anything typed before then. The `search()` helper in
+    `tests/cards.spec.js` retries fill-and-submit for exactly this reason; follow that
+    pattern for any new test that types into a filter.
+  - On Windows an aborted run can orphan a `vite dev` child that keeps holding
+    `data/e2e.db`; the next run then fails on `EBUSY`. Kill the stray process.
 - Node with `engine-strict=true` (`.npmrc`); `better-sqlite3` is a native module, so
   installs need build tools (`python3 make g++` on Alpine — see `Dockerfile`).
 - Docker: `docker compose up --build` runs the app on port 3000 with a persistent
