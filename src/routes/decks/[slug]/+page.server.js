@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { db } from '$lib/db/index.js';
 import { decks, deckCards, cards, cardImages, friendships } from '$lib/db/schema.js';
 import { eq, and, like, or } from 'drizzle-orm';
+import { AVATAR_ZONE } from '$lib/server/avatars.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ locals, params }) {
@@ -51,9 +52,22 @@ export async function load({ locals, params }) {
 
   const atlas = allDeckCards.filter((dc) => dc.zone === 'atlas');
   const spellbook = allDeckCards.filter((dc) => dc.zone === 'spellbook');
+  // Filtering by zone keeps the avatar out of the atlas and spellbook counts and
+  // out of the rarity check below, which is what stops it reading as a 61st card.
+  const avatarRows = allDeckCards.filter((dc) => dc.zone === AVATAR_ZONE);
+  const avatar = avatarRows[0] ?? null;
+
+  const warnings = [];
+
+  // Every deck holds exactly one avatar, whatever its format, so this check sits
+  // outside the standard-format block below.
+  if (avatarRows.length === 0) {
+    warnings.push('No avatar selected (a deck needs exactly one)');
+  } else if (avatarRows.length > 1) {
+    warnings.push(`More than one avatar (${avatarRows.length}); a deck needs exactly one`);
+  }
 
   // Validation for standard format
-  const warnings = [];
   if (deck.format === 'standard') {
     const atlasCount = atlas.reduce((sum, dc) => sum + dc.quantity, 0);
     const spellbookCount = spellbook.reduce((sum, dc) => sum + dc.quantity, 0);
@@ -87,6 +101,7 @@ export async function load({ locals, params }) {
 
   return {
     deck,
+    avatar,
     atlas,
     spellbook,
     warnings,

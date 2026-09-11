@@ -178,8 +178,8 @@ JSON endpoints under `src/routes/api/**/+server.js`. Global styles and design to
   preserve decimal precision. JSON-array fields (`cards.elements`, `cards.set_ids`,
   `cubes.settings`, `decks.tags`) are stringified JSON — `JSON.parse` on read.
 - Key domain tables: `cards` / `card_images` / `card_prices` / `sets` (shared catalog),
-  `users` / `accounts` / `sessions`, `decks` + `deck_cards` (`zone` is `atlas` or
-  `spellbook`), `collections`, `cubes` + `cube_cards`, `trades`, `friend_requests` /
+  `users` / `accounts` / `sessions`, `decks` + `deck_cards` (`zone` is `atlas`,
+  `spellbook` or `avatar`), `collections`, `cubes` + `cube_cards`, `trades`, `friend_requests` /
   `friendships` (friendship rows are one-directional and store per-category share flags:
   `share_decks`, `share_cubes`, `share_collection`, `share_trades`).
 
@@ -208,7 +208,7 @@ Collection and decks use **different** formats — they are not a shared code pa
   column. `quantity <= 0` on import deletes the matching collection row; copies from
   different sets are tracked as separate rows (matched on `card_id` + `set_id`).
 - **Decks** (`/api/decks/[id]/import|export`) use a plain-text decklist, **not** CSV:
-  `//`-prefixed comments, `// Atlas` / `// Spellbook` zone headers, and one
+  `//`-prefixed comments, `// Avatar` / `// Atlas` / `// Spellbook` zone headers, and one
   `4x Card Name` line per entry. The UI for both is on the deck page
   (`src/routes/decks/[slug]/+page.svelte`), owner-only. Import is lenient about input
   (`4x Name`, `4 Name` or a bare `Name`; headers may be `Atlas`, `Atlas:` or `// Atlas`)
@@ -216,6 +216,29 @@ Collection and decks use **different** formats — they are not a shared code pa
   Unmatched names are counted in `skipped` rather than failing the request.
   - **Deck import is destructive**: it deletes every `deck_cards` row for the deck
     _before_ parsing, so a paste that matches nothing leaves an empty deck.
+
+### Deck avatars
+
+A deck holds exactly one avatar, stored as a third `deck_cards.zone` value next to
+`atlas` and `spellbook`. `zone` is plain `TEXT` with no CHECK constraint, so this
+needed **no migration** — worth remembering before reaching for one to add a zone.
+
+`src/lib/server/avatars.js` is the single source of truth for the rules, and the cards
+endpoint, the deck edit load and decklist import all call it so the API and the UI that
+feeds it cannot drift:
+
+- A normal deck may use any `type = 'Avatar'` card.
+- A **cube deck** is limited to avatars in its cube's `cube_cards` pool, **plus
+  Spellslinger** (`spellslinger`), which is legal in every deck. Pool presence is all
+  that counts — an avatar does not consume a copy, so two decks from one cube can share.
+- Writing an avatar **replaces** any existing one rather than accumulating, and the
+  avatar is excluded from the 30/60 counts and the rarity limit check.
+- Enforcement is a **warning**, matching the existing 30/60 style: nothing blocks a save,
+  so decks predating the feature stay valid and need no backfill.
+
+The E2E seed builds a cube (`tests/helpers/fixtures.js`) that deliberately keeps
+Spellslinger **out** of the pool, so a spec that accepts it proves the exception fired
+rather than the pool check passing. Keep it that way.
 
 ### Sharing / visibility model
 

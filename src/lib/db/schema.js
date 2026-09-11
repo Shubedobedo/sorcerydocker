@@ -134,7 +134,7 @@ export const deckCards = sqliteTable('deck_cards', {
   card_id: text('card_id')
     .notNull()
     .references(() => cards.id),
-  zone: text('zone').notNull(), // atlas, spellbook
+  zone: text('zone').notNull(), // atlas, spellbook, avatar
   quantity: integer('quantity').notNull().default(1)
 });
 

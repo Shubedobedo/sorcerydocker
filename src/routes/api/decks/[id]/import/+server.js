@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { db } from '$lib/db/index.js';
 import { decks, deckCards, cards } from '$lib/db/schema.js';
 import { eq, and, like } from 'drizzle-orm';
+import { AVATAR_ZONE, isAvatarCard, avatarRejectionReason } from '$lib/server/avatars.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ locals, request, params }) {
@@ -46,6 +47,14 @@ export async function POST({ locals, request, params }) {
       currentZone = 'spellbook';
       continue;
     }
+    if (
+      trimmed.toLowerCase().includes('// avatar') ||
+      trimmed.toLowerCase() === 'avatar' ||
+      trimmed.toLowerCase() === 'avatar:'
+    ) {
+      currentZone = AVATAR_ZONE;
+      continue;
+    }
 
     // Skip comment lines
     if (trimmed.startsWith('//')) continue;
@@ -69,8 +78,29 @@ export async function POST({ locals, request, params }) {
       continue;
     }
 
-    // Auto-detect zone for sites
-    const zone = found.type === 'Site' ? 'atlas' : currentZone;
+    // Auto-detect zone by card type. Avatars used to fall through to the
+    // spellbook here, which silently put them in the wrong zone.
+    let zone = currentZone;
+    if (found.type === 'Site') zone = 'atlas';
+    else if (isAvatarCard(found)) zone = AVATAR_ZONE;
+
+    if (zone === AVATAR_ZONE) {
+      // An illegal avatar is skipped rather than failing the import, matching how
+      // unmatched card names behave.
+      if (await avatarRejectionReason(deck, found.id)) {
+        skipped++;
+        continue;
+      }
+      // Exactly one avatar: a later line replaces an earlier one.
+      await db
+        .delete(deckCards)
+        .where(and(eq(deckCards.deck_id, deck.id), eq(deckCards.zone, AVATAR_ZONE)));
+      await db
+        .insert(deckCards)
+        .values({ deck_id: deck.id, card_id: found.id, zone: AVATAR_ZONE, quantity: 1 });
+      imported++;
+      continue;
+    }
 
     // Check if already in deck
     const existing = await db.query.deckCards.findFirst({

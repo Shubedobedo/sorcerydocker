@@ -3,6 +3,7 @@ import { existsSync, rmSync } from 'fs';
 import { resolve } from 'path';
 import { ROOT } from './helpers/env.js';
 import { USERS } from './helpers/auth.js';
+import { CUBE, AVATARS } from './helpers/fixtures.js';
 
 export const E2E_DB = resolve(ROOT, 'data/e2e.db');
 const SOURCE_DB = resolve(ROOT, 'data/sorcery.db');
@@ -93,11 +94,12 @@ export default function seed() {
 
   const owned = seedCollection(target, USERS.member.id);
   seedFriendship(target);
+  const pool = seedCube(target, USERS.member.id);
 
   target.close();
   console.log(
     `[e2e] seeded ${E2E_DB} with ${cards} cards, ${Object.keys(USERS).length} test users ` +
-      `and ${owned} collection rows`
+      `${owned} collection rows and a ${pool}-card cube`
   );
 }
 
@@ -169,6 +171,64 @@ function seedFriendship(target) {
   insert.run(USERS.member.id, USERS.admin.id, 0, 0, 1, 1, now);
   // admin -> member: friends, but nothing shared back.
   insert.run(USERS.admin.id, USERS.member.id, 0, 0, 0, 0, now);
+}
+
+/**
+ * Seeds a cube whose pool is shaped for the avatar rules.
+ *
+ * A cube deck may only use an avatar that is in its cube's pool, with
+ * Spellslinger allowed as a standing exception. Proving that needs three
+ * distinct cards: one avatar inside the pool, one real avatar outside it, and
+ * Spellslinger — which is deliberately kept OUT of the pool, so a spec that
+ * accepts it proves the exception fired rather than the pool check passing.
+ *
+ * The ids are inserted explicitly because no API lists a cube's pool, leaving
+ * the specs no other way to know what is in it.
+ */
+function seedCube(target, userId) {
+  const exists = target.prepare('SELECT 1 FROM cards WHERE id = ?');
+  for (const id of Object.values(AVATARS)) {
+    if (!exists.get(id)) {
+      throw new Error(
+        `Avatar "${id}" is missing from the card catalog, so the cube fixtures cannot be ` +
+          `seeded. Re-sync the catalog, or choose another avatar in tests/helpers/fixtures.js.`
+      );
+    }
+  }
+
+  const now = new Date().toISOString();
+  target
+    .prepare(
+      `INSERT INTO cubes (id, user_id, name, description, visibility, slug, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .run(
+      CUBE.id,
+      userId,
+      CUBE.name,
+      'Seeded pool for the avatar rules.',
+      'private',
+      CUBE.slug,
+      now,
+      now
+    );
+
+  // Ordinary cards so the pool is not avatar-only, picked by name order to stay
+  // deterministic, then the single avatar the pool is allowed to offer.
+  const filler = target
+    .prepare("SELECT id FROM cards WHERE type IN ('Site', 'Minion') ORDER BY name LIMIT 12")
+    .all()
+    .map((c) => c.id);
+
+  const insert = target.prepare(
+    'INSERT INTO cube_cards (cube_id, card_id, quantity) VALUES (?, ?, ?)'
+  );
+  const insertAll = target.transaction((ids) => {
+    for (const id of ids) insert.run(CUBE.id, id, 1);
+  });
+  insertAll([...filler, AVATARS.inPool]);
+
+  return filler.length + 1;
 }
 
 // Executed directly by playwright.config.js's webServer command.
