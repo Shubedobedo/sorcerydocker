@@ -132,12 +132,13 @@
     {#if showImport}
       <div class="import-panel">
         <p class="import-hint">
-          Paste a decklist. Use "// Atlas" and "// Spellbook" headers. Format: "4x Card Name"
+          Paste a decklist. Use "// Avatar", "// Atlas" and "// Spellbook" headers. Format: "4x Card
+          Name". Importing replaces the whole deck.
         </p>
         <textarea
           class="input import-textarea"
           bind:value={importText}
-          placeholder={'// Atlas\n3x Dark Tower\n3x Gothic Tower\n\n// Spellbook\n4x Lightning Bolt\n3x Apprentice Wizard'}
+          placeholder={'// Avatar\n1x Spellslinger\n\n// Atlas\n3x Dark Tower\n3x Gothic Tower\n\n// Spellbook\n4x Lightning Bolt\n3x Apprentice Wizard'}
         ></textarea>
         <button class="btn btn-primary" onclick={importDeck}>Import</button>
         {#if importResult}
@@ -195,6 +196,20 @@
   {#if data.deck.description}
     <p class="description">{data.deck.description}</p>
   {/if}
+
+  <section class="avatar-slot">
+    <h2>Avatar</h2>
+    {#if data.avatar}
+      <a href="/cards/{data.avatar.card.slug}" class="avatar-card">
+        {#if data.avatar.card.image_url}
+          <img src={data.avatar.card.image_url} alt={data.avatar.card.name} />
+        {/if}
+        <span class="avatar-name">{data.avatar.card.name}</span>
+      </a>
+    {:else}
+      <p class="avatar-empty">No avatar selected.</p>
+    {/if}
+  </section>
 
   <div class="zones-layout">
     <section class="zone">
@@ -470,6 +485,37 @@
     margin-left: 0.75rem;
     font-size: 0.8rem;
     color: var(--color-success);
+  }
+
+  .avatar-slot {
+    margin-bottom: 1.5rem;
+  }
+
+  .avatar-slot h2 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .avatar-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .avatar-card img {
+    width: 56px;
+    border-radius: 4px;
+  }
+
+  .avatar-name {
+    font-weight: 600;
+  }
+
+  .avatar-empty {
+    opacity: 0.7;
+    font-size: 0.9rem;
   }
 
   .deck-stats {

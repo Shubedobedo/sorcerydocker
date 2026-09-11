@@ -130,6 +130,36 @@
     }
   }
 
+  // The avatar zone replaces rather than accumulates, so this is a plain set.
+  async function setAvatar(cardId) {
+    addError = '';
+    if (!cardId) return;
+    const res = await fetch(`/api/decks/${data.deck.id}/cards`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ card_id: cardId, zone: 'avatar' })
+    });
+    if (res.ok) {
+      await invalidateAll();
+    } else {
+      const err = await res.json();
+      addError = err.error || 'Failed to set avatar';
+      setTimeout(() => {
+        addError = '';
+      }, 4000);
+    }
+  }
+
+  async function clearAvatar() {
+    if (!data.avatar) return;
+    await fetch(`/api/decks/${data.deck.id}/cards`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ card_id: data.avatar.card_id, zone: 'avatar' })
+    });
+    await invalidateAll();
+  }
+
   async function removeCard(cardId, zone) {
     const res = await fetch(`/api/decks/${data.deck.id}/cards`, {
       method: 'DELETE',
@@ -193,6 +223,26 @@
 
   <div class="editor-layout">
     <aside class="search-panel">
+      <h2>Avatar</h2>
+      <div class="avatar-picker">
+        <select
+          class="input"
+          value={data.avatar?.card_id ?? ''}
+          onchange={(e) => setAvatar(e.currentTarget.value)}
+        >
+          <option value="">Select an avatar...</option>
+          {#each data.legalAvatars as card}
+            <option value={card.id}>{card.name}</option>
+          {/each}
+        </select>
+        {#if data.avatar}
+          <button class="btn btn-secondary" onclick={clearAvatar}>Clear</button>
+        {/if}
+      </div>
+      {#if isCubeDeck}
+        <p class="cube-search-note">Cube pool avatars, plus Spellslinger</p>
+      {/if}
+
       <h2>Add Cards</h2>
       {#if isCubeDeck}
         <p class="cube-search-note">Searching from cube pool only</p>
@@ -437,6 +487,17 @@
   .search-panel h2 {
     margin: 0 0 0.75rem;
     font-size: 1rem;
+  }
+
+  .avatar-picker {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .avatar-picker select {
+    flex: 1;
   }
 
   .zone-picker {

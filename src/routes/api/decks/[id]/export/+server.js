@@ -1,6 +1,7 @@
 import { db } from '$lib/db/index.js';
 import { decks, deckCards, cards, friendships } from '$lib/db/schema.js';
 import { eq, and } from 'drizzle-orm';
+import { AVATAR_ZONE } from '$lib/server/avatars.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ locals, params }) {
@@ -28,6 +29,7 @@ export async function GET({ locals, params }) {
 
   const deckCardRows = await db.select().from(deckCards).where(eq(deckCards.deck_id, deck.id));
 
+  const avatar = [];
   const atlas = [];
   const spellbook = [];
 
@@ -35,12 +37,16 @@ export async function GET({ locals, params }) {
     const card = await db.query.cards.findFirst({ where: eq(cards.id, dc.card_id) });
     if (card) {
       const line = `${dc.quantity}x ${card.name}`;
-      if (dc.zone === 'atlas') atlas.push(line);
+      if (dc.zone === AVATAR_ZONE) avatar.push(line);
+      else if (dc.zone === 'atlas') atlas.push(line);
       else spellbook.push(line);
     }
   }
 
   let text = `// ${deck.name}\n// Format: ${deck.format}\n\n`;
+  // Omitted entirely when the deck has no avatar, so the header never appears
+  // above an empty section.
+  if (avatar.length) text += `// Avatar\n${avatar.join('\n')}\n\n`;
   text += `// Atlas\n${atlas.join('\n')}\n\n`;
   text += `// Spellbook\n${spellbook.join('\n')}\n`;
 

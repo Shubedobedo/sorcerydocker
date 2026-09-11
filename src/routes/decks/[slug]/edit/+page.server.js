@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { db } from '$lib/db/index.js';
 import { decks, deckCards, cards, cardImages, cubeCards, cubes } from '$lib/db/schema.js';
 import { eq, and, like } from 'drizzle-orm';
+import { AVATAR_ZONE, legalAvatarsFor } from '$lib/server/avatars.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ locals, params }) {
@@ -71,8 +72,15 @@ export async function load({ locals, params }) {
     }
   }
 
+  // The picker offers only avatars this deck may legally use: every avatar for
+  // a normal deck, or the cube's pool plus Spellslinger for a cube deck.
+  const legalAvatars = await legalAvatarsFor(deck);
+  const avatar = allDeckCards.find((dc) => dc.zone === AVATAR_ZONE) ?? null;
+
   return {
     deck,
+    avatar,
+    legalAvatars,
     atlas,
     spellbook,
     cubePool,

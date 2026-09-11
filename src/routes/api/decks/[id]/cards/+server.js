@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { db } from '$lib/db/index.js';
 import { decks, deckCards, cubeCards } from '$lib/db/schema.js';
 import { eq, and } from 'drizzle-orm';
+import { AVATAR_ZONE, avatarRejectionReason } from '$lib/server/avatars.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ locals, request, params }) {
@@ -20,8 +21,34 @@ export async function POST({ locals, request, params }) {
     return json({ error: 'card_id and zone are required' }, { status: 400 });
   }
 
-  if (!['atlas', 'spellbook'].includes(zone)) {
-    return json({ error: 'Zone must be atlas or spellbook' }, { status: 400 });
+  if (!['atlas', 'spellbook', AVATAR_ZONE].includes(zone)) {
+    return json({ error: 'Zone must be atlas, spellbook or avatar' }, { status: 400 });
+  }
+
+  // The avatar zone has its own rules and skips the cube quantity accounting
+  // below: a deck holds exactly one avatar, and an avatar does not consume a
+  // copy from the cube pool, so it is replaced rather than accumulated.
+  if (zone === AVATAR_ZONE) {
+    const reason = await avatarRejectionReason(deck, card_id);
+    if (reason) return json({ error: reason, warning: true }, { status: 422 });
+
+    await db
+      .delete(deckCards)
+      .where(and(eq(deckCards.deck_id, deck.id), eq(deckCards.zone, AVATAR_ZONE)));
+
+    await db.insert(deckCards).values({
+      deck_id: deck.id,
+      card_id,
+      zone: AVATAR_ZONE,
+      quantity: 1
+    });
+
+    await db
+      .update(decks)
+      .set({ updated_at: new Date().toISOString() })
+      .where(eq(decks.id, deck.id));
+
+    return json({ success: true });
   }
 
   // Cube format validation: card must be in cube pool and quantity can't exceed pool amount
