@@ -113,6 +113,24 @@ test.describe('signed in as a member', () => {
       data: { card_id: card.id, set_id: null, quantity: 0 }
     });
   });
+
+  // Unowned cards come from a separate list in the load, which once omitted the
+  // price, so only owned cards showed one under the Missing filter.
+  test('the missing filter shows prices for cards not in the collection', async ({ page }) => {
+    const rows = await (await page.request.get('/api/collection')).json();
+    for (const row of rows.filter((r) => r.card_id === 'sorcerer')) {
+      await page.request.post('/api/collection', {
+        data: { card_id: row.card_id, set_id: row.set_id, quantity: 0 }
+      });
+    }
+
+    await page.goto('/collection?completion=missing&q=Sorcerer');
+    const tile = page
+      .locator('.collection-card')
+      .filter({ has: page.locator('.card-name', { hasText: /^Sorcerer$/ }) });
+    await expect(tile.first()).toBeVisible();
+    await expect(tile.first().locator('.card-price')).toHaveText(/^\$\d+\.\d{2}$/);
+  });
 });
 
 test.describe('signed in as an admin', () => {
