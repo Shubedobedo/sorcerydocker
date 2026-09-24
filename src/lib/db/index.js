@@ -191,6 +191,7 @@ sqlite.exec(`
     location TEXT,
     expected_value TEXT,
     status TEXT NOT NULL DEFAULT 'available',
+    list_quantity INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     traded_at TEXT
   );
@@ -225,6 +226,11 @@ try {
 }
 try {
   sqlite.exec(`ALTER TABLE trades ADD COLUMN foil INTEGER NOT NULL DEFAULT 0`);
+} catch (e) {
+  // Column already exists
+}
+try {
+  sqlite.exec(`ALTER TABLE trades ADD COLUMN list_quantity INTEGER NOT NULL DEFAULT 0`);
 } catch (e) {
   // Column already exists
 }

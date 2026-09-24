@@ -1,7 +1,8 @@
 import { json } from '@sveltejs/kit';
 import { db } from '$lib/db/index.js';
-import { trades, collections, cards, cardImages } from '$lib/db/schema.js';
-import { eq, and, like } from 'drizzle-orm';
+import { trades } from '$lib/db/schema.js';
+import { removeFromCollection } from '$lib/server/trades.js';
+import { eq, and } from 'drizzle-orm';
 
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ locals, request }) {
@@ -38,7 +39,8 @@ export async function PATCH({ locals, request }) {
   const session = await locals.auth();
   if (!session?.user) return json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { id, location, expected_value, status, foil, set_name } = await request.json();
+  const { id, location, expected_value, status, foil, set_name, list_quantity } =
+    await request.json();
 
   if (!id) return json({ error: 'id is required' }, { status: 400 });
 
@@ -53,33 +55,18 @@ export async function PATCH({ locals, request }) {
   if (expected_value !== undefined) updates.expected_value = expected_value;
   if (foil !== undefined) updates.foil = foil ? 1 : 0;
   if (set_name !== undefined) updates.set_name = set_name;
+  if (list_quantity !== undefined) {
+    // Clamp into 0..quantity; 0 takes the entry off the trade list.
+    const n = Math.trunc(Number(list_quantity)) || 0;
+    updates.list_quantity = Math.max(0, Math.min(n, trade.quantity));
+  }
 
   if (status === 'traded') {
     updates.status = 'archived';
     updates.traded_at = new Date().toISOString();
 
-    // Remove from collection
-    const collConditions = [
-      eq(collections.user_id, session.user.id),
-      eq(collections.card_id, trade.card_id)
-    ];
-    if (trade.set_id) collConditions.push(eq(collections.set_id, trade.set_id));
-
-    const collEntry = await db.query.collections.findFirst({
-      where: and(...collConditions)
-    });
-
-    if (collEntry) {
-      const newQty = collEntry.quantity - trade.quantity;
-      if (newQty <= 0) {
-        await db.delete(collections).where(eq(collections.id, collEntry.id));
-      } else {
-        await db
-          .update(collections)
-          .set({ quantity: newQty })
-          .where(eq(collections.id, collEntry.id));
-      }
-    }
+    updates.list_quantity = 0;
+    removeFromCollection(trade, trade.quantity);
   } else if (status !== undefined) {
     updates.status = status;
     if (status === 'available') {
