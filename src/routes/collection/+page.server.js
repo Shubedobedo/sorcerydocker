@@ -93,6 +93,7 @@ export async function load({ locals }) {
         set_id: card.set_id,
         set_name: card.set_name,
         quantity: 0,
+        price: resolvePrice(priceLookup, priceRowsByCard, card.id, card.set_name),
         card: { ...card, image_url: img?.image_url || null }
       });
     }

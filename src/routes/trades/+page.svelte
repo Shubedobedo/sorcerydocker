@@ -1,5 +1,6 @@
 <script>
   import { onMount } from 'svelte';
+  import { invalidateAll } from '$app/navigation';
 
   let { data } = $props();
   let editingId = $state(null);
@@ -73,6 +74,39 @@
   let filteredValue = $derived(
     filteredAvailable().reduce((sum, t) => sum + (t.price != null ? t.price * t.quantity : 0), 0)
   );
+
+  // The trade list: binder entries (or some of their copies) staged for one trade.
+  let tradeList = $derived(data.available.filter((t) => t.list_quantity > 0));
+  let listValue = $derived(
+    tradeList.reduce((sum, t) => sum + (t.price != null ? t.price * t.list_quantity : 0), 0)
+  );
+  let unpricedCount = $derived(tradeList.filter((t) => t.price == null).length);
+
+  // Copies chosen in each multi-copy entry's picker, keyed by trade id; defaults to all.
+  let pickedCopies = $state({});
+
+  async function setListed(trade, list_quantity) {
+    await fetch('/api/trades', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: trade.id, list_quantity })
+    });
+    await invalidateAll();
+  }
+
+  function markAllTraded() {
+    const copies = tradeList.reduce((sum, t) => sum + t.list_quantity, 0);
+    showConfirm(
+      'Mark All Traded',
+      `This will mark ${copies} ${copies === 1 ? 'card' : 'cards'} as traded and remove them from your collection.`,
+      async () => {
+        await fetch('/api/trades/list/complete', { method: 'POST' });
+        confirmModal = null;
+        showToast('Trade completed');
+        await invalidateAll();
+      }
+    );
+  }
 
   function clearFilters() {
     filters = { q: '', foil: '', price: '', sets: [] };
@@ -203,6 +237,40 @@
 
 <div class="container trades-page">
   <h1>Trade Binder</h1>
+
+  {#if tradeList.length > 0}
+    <section class="trade-section pending-trade" aria-labelledby="trade-list-heading">
+      <h2 id="trade-list-heading">Trade List ({tradeList.length})</h2>
+      <ul class="list-rows">
+        {#each tradeList as trade (trade.id)}
+          <li class="list-row">
+            <a href="/cards/{trade.card.slug}" class="trade-name">
+              {trade.card.name}
+              {#if trade.foil}<span class="foil-badge">FOIL</span>{/if}
+            </a>
+            <span class="trade-meta"
+              >{trade.list_quantity}x{#if trade.list_quantity < trade.quantity}
+                of {trade.quantity}{/if} &middot; {trade.set_name || trade.card.set_name}</span
+            >
+            {#if trade.price != null}
+              <span class="list-subtotal">${(trade.price * trade.list_quantity).toFixed(2)}</span>
+            {:else}
+              <span class="list-unpriced">No price</span>
+            {/if}
+            <button class="btn btn-danger btn-sm" onclick={() => setListed(trade, 0)}>Remove</button
+            >
+          </li>
+        {/each}
+      </ul>
+      <div class="list-footer">
+        <span class="list-value">
+          Total market value: <strong class="list-total">${listValue.toFixed(2)}</strong>
+          {#if unpricedCount > 0}<span class="list-note">({unpricedCount} unpriced)</span>{/if}
+        </span>
+        <button class="btn btn-primary" onclick={markAllTraded}>Mark All Traded</button>
+      </div>
+    </section>
+  {/if}
 
   <section class="trade-section">
     <h2>
@@ -382,6 +450,28 @@
                 {/if}
 
                 <div class="trade-actions">
+                  {#if trade.list_quantity > 0}
+                    <span class="on-list">&#10003; On trade list ({trade.list_quantity}x)</span>
+                  {:else}
+                    {#if trade.quantity > 1}
+                      <input
+                        type="number"
+                        class="input copies-input"
+                        min="1"
+                        max={trade.quantity}
+                        aria-label="Copies to list"
+                        value={pickedCopies[trade.id] ?? trade.quantity}
+                        oninput={(e) => {
+                          pickedCopies[trade.id] = e.currentTarget.valueAsNumber;
+                        }}
+                      />
+                    {/if}
+                    <button
+                      class="btn btn-secondary btn-sm"
+                      onclick={() => setListed(trade, pickedCopies[trade.id] || trade.quantity)}
+                      >Add to List</button
+                    >
+                  {/if}
                   <button class="btn btn-secondary btn-sm" onclick={() => startEdit(trade)}
                     >Edit</button
                   >
@@ -693,6 +783,78 @@
     display: flex;
     gap: 0.5rem;
     margin-top: 0.5rem;
+  }
+
+  .pending-trade {
+    padding: 1rem;
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-md);
+  }
+
+  .list-rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .list-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .list-row .trade-meta {
+    flex: 1;
+  }
+
+  .list-subtotal {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-success);
+  }
+
+  .list-unpriced,
+  .list-note {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+  }
+
+  .list-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+
+  .list-value {
+    font-size: 0.9rem;
+  }
+
+  .list-total {
+    color: var(--color-success);
+  }
+
+  .on-list {
+    align-self: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-success);
+  }
+
+  .copies-input {
+    width: 4rem;
+    padding: 0.3rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .trade-actions {
+    flex-wrap: wrap;
   }
 
   .edit-form {

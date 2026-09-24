@@ -257,6 +257,8 @@ export const trades = sqliteTable('trades', {
   location: text('location'), // e.g. "Binder 2, Page 6"
   expected_value: text('expected_value'), // e.g. "$25" or "15 USD"
   status: text('status').notNull().default('available'), // available, traded, archived
+  // Copies of this entry on the owner's trade list; 0 = not on it. Never exceeds quantity.
+  list_quantity: integer('list_quantity').notNull().default(0),
   created_at: text('created_at')
     .notNull()
     .$defaultFn(() => new Date().toISOString()),

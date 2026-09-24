@@ -240,6 +240,19 @@ The E2E seed builds a cube (`tests/helpers/fixtures.js`) that deliberately keeps
 Spellslinger **out** of the pool, so a spec that accepts it proves the exception fired
 rather than the pool check passing. Keep it that way.
 
+### Trade list
+
+The trade binder (`/trades`) has a trade list: a staging area for one pending trade.
+It is not a separate table — `trades.list_quantity` holds how many copies of a binder
+entry are listed (0 = not listed), clamped to `0..quantity` by `PATCH /api/trades`.
+
+- `POST /api/trades/list/complete` → `completeTradeList()` in `src/lib/server/trades.js`
+  trades the whole list in **one transaction**. A fully listed entry is archived in place;
+  a **partly** listed one keeps its untraded copies and the traded copies become a **new
+  archived row**. Undoing that row brings it back as its own binder entry, not merged.
+- `removeFromCollection()` in the same file is shared by single "Mark Traded" and the bulk
+  path. It is synchronous (better-sqlite3 transactions cannot await), so keep it that way.
+
 ### Sharing / visibility model
 
 `decks`, `cubes`, and collections have a `visibility` of `private` / `public` /
