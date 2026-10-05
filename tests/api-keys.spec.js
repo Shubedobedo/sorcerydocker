@@ -492,14 +492,21 @@ test.describe('/profile API keys UI', () => {
     await expect(page.locator('.toast')).toContainText('Copy failed');
   });
 
-  test('Create key is disabled until a name is typed', async ({ page }) => {
+  test('Create key with no name says why instead of doing nothing', async ({ page }) => {
+    // The app has no disabled-button styling, so a disabled Create key looked
+    // clickable and silently ignored the click. It must stay clickable and explain.
     await signIn(page.context(), 'member');
     await gotoHydrated(page, '/profile');
     const button = page.getByRole('button', { name: 'Create key' });
-    await expect(button).toBeDisabled();
-    await page.getByLabel('Key name').fill('   ');
-    await expect(button).toBeDisabled();
-    await page.getByLabel('Key name').fill('ok');
-    await expect(button).toBeEnabled();
+    const before = await page.locator('li.api-key').count();
+
+    for (const name of ['', '   ']) {
+      await page.getByLabel('Key name').fill(name);
+      await button.click({ timeout: 5000 });
+      await expect(page.locator('.toast')).toContainText('Give the key a name first');
+    }
+    // Rejected client-side: no request, so no key and no 400 in the console.
+    await expect(page.locator('li.api-key')).toHaveCount(before);
+    await expect(page.locator('code.new-key')).toHaveCount(0);
   });
 });

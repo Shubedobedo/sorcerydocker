@@ -47,6 +47,12 @@
   let creatingKey = $state(false);
 
   async function createKey() {
+    // Checked here rather than by disabling the button: the app has no disabled
+    // button styling, so a disabled button looked clickable and did nothing.
+    if (!newKeyName.trim()) {
+      showToast('Give the key a name first');
+      return;
+    }
     creatingKey = true;
     const res = await fetch('/api/keys', {
       method: 'POST',
@@ -181,11 +187,7 @@
           placeholder="e.g. Discord bot"
         />
       </label>
-      <button
-        class="btn btn-primary"
-        onclick={createKey}
-        disabled={creatingKey || !newKeyName.trim()}
-      >
+      <button class="btn btn-primary" onclick={createKey} disabled={creatingKey}>
         {creatingKey ? 'Creating...' : 'Create key'}
       </button>
     </div>
