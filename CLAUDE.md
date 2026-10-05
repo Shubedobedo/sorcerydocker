@@ -105,6 +105,10 @@ npm run dev:login      # mint an Auth.js session cookie to skip the Google login
   `gh` works normally in a regular terminal.
 - There is no Python on this machine; `python` hits the Windows Store alias stub and
   exits 49. Use `node -e` for one-off scripting.
+- Git Bash (the shell Claude Code's Bash tool runs) rewrites any argument that starts
+  with `/` into a Windows path, so `npx playwright test -g "/api/v1 data"` silently
+  becomes a path and reports "No tests found". Drop the leading slash (`-g "v1 data"`) or
+  prefix the command with `MSYS_NO_PATHCONV=1`.
 
 ## MCP
 
@@ -169,11 +173,15 @@ JSON endpoints under `src/routes/api/**/+server.js`. Global styles and design to
   exists but `db:migrate` is not wired into build/startup.
   - **When changing the schema, update BOTH `schema.js` AND the raw SQL in `index.js`**
     (add a `CREATE TABLE`/`ALTER TABLE` there), or deployed databases will not get the change.
-  - **Back up the database before any schema edit**: `cp data/sorcery.db data/sorcery.db.bak`.
-    Because that SQL runs on import, a schema change is applied to the real
-    `data/sorcery.db` the moment the dev server restarts — there is no staging step and
-    no review point. SQLite cannot drop or retype a column in place, so a mistake here is
-    tedious to unwind. The `.bak` file is gitignored by the `data/` rule.
+  - **Back up the database before any schema edit**, with `VACUUM INTO`, not `cp`:
+    `node -e "new (require('better-sqlite3'))('data/sorcery.db',{readonly:true}).exec(\"VACUUM INTO 'data/sorcery.db.bak'\")"`
+    (delete an old `.bak` first — `VACUUM INTO` refuses to overwrite). The DB runs in WAL
+    mode, so recent writes can sit in `sorcery.db-wal`; a plain `cp` of `sorcery.db` misses
+    them and produces a stale backup. Because the schema SQL runs on import, a change is
+    applied to the real `data/sorcery.db` as soon as a dev server loads it — including one
+    already running, which picks up the edit through Vite without a restart. There is no
+    staging step and no review point. SQLite cannot drop or retype a column in place, so a
+    mistake here is tedious to unwind. The `.bak` file is gitignored by the `data/` rule.
 - All timestamps are ISO strings in `TEXT` columns. Prices are stored as `TEXT` to
   preserve decimal precision. JSON-array fields (`cards.elements`, `cards.set_ids`,
   `cubes.settings`, `decks.tags`) are stringified JSON — `JSON.parse` on read.
