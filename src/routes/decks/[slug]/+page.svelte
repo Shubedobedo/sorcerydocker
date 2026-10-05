@@ -1,4 +1,6 @@
 <script>
+  import { buildPsoLink } from '$lib/psoLink.js';
+
   let { data } = $props();
 
   let atlasCount = $derived(data.atlas.reduce((sum, dc) => sum + dc.quantity, 0));
@@ -84,6 +86,37 @@
     });
     window.location.reload();
   }
+
+  // Play on PSO: copies a link Play Sorcery Online can import (see psoLink.js).
+  let toast = $state('');
+  let psoLink = $state(''); // shown only when the clipboard copy fails
+
+  function showToast(message) {
+    toast = message;
+    setTimeout(() => {
+      toast = '';
+    }, 5000);
+  }
+
+  async function playOnPso() {
+    const link = buildPsoLink({
+      name: data.deck.name,
+      avatar: data.avatar ? { name: data.avatar.card.name } : null,
+      atlas: data.atlas.map((dc) => ({ name: dc.card.name, quantity: dc.quantity })),
+      spellbook: data.spellbook.map((dc) => ({ name: dc.card.name, quantity: dc.quantity }))
+    });
+    // navigator.clipboard only exists in a secure context, so a plain-http
+    // self-hosted install has none; fall back to a field the user can copy from.
+    try {
+      await navigator.clipboard.writeText(link);
+      psoLink = '';
+      showToast(
+        'PSO link copied. In Play Sorcery Online, use Import → paste it into the deck URL box'
+      );
+    } catch {
+      psoLink = link;
+    }
+  }
 </script>
 
 <svelte:head>
@@ -114,8 +147,11 @@
     {/if}
   </div>
 
-  {#if data.isOwner}
-    <div class="deck-tools">
+  <!-- Play on PSO only reads the deck, so anyone who can view it gets it; the
+       export and import tools stay owner-only. -->
+  <div class="deck-tools">
+    <button class="btn btn-secondary" onclick={playOnPso}>Play on PSO</button>
+    {#if data.isOwner}
       <a href="/api/decks/{data.deck.id}/export" class="btn btn-secondary" download
         >Export Decklist</a
       >
@@ -127,8 +163,26 @@
       >
         {showImport ? 'Cancel' : 'Import Decklist'}
       </button>
-    </div>
+    {/if}
+  </div>
 
+  {#if psoLink}
+    <div class="pso-panel">
+      <label class="pso-label" for="pso-link">
+        PSO link — couldn't copy automatically. Copy it, then in Play Sorcery Online use Import →
+        paste it into the deck URL box.
+      </label>
+      <input
+        id="pso-link"
+        class="input"
+        readonly
+        value={psoLink}
+        onfocus={(e) => e.currentTarget.select()}
+      />
+    </div>
+  {/if}
+
+  {#if data.isOwner}
     {#if showImport}
       <div class="import-panel">
         <p class="import-hint">
@@ -266,6 +320,10 @@
     </section>
   </div>
 </div>
+
+{#if toast}
+  <div class="toast">{toast}</div>
+{/if}
 
 <style>
   .deck-view {
@@ -456,6 +514,33 @@
     display: flex;
     gap: 0.5rem;
     margin-bottom: 1.5rem;
+  }
+
+  .pso-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .pso-label {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: calc(100% - 2rem);
+    background-color: var(--color-success);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    box-shadow: var(--shadow-lg);
+    z-index: 300;
   }
 
   .import-panel {
