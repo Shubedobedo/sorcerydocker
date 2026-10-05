@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { signIn, USERS } from './helpers/auth.js';
+import { AVATARS, CUBE } from './helpers/fixtures.js';
 
 /**
  * Read-only API keys: minted on /profile (session only), used against /api/v1/*
@@ -272,5 +273,164 @@ test.describe('/api/v1 data', () => {
     expect(t).toMatchObject({ card_id: 'battlemage', name: 'Battlemage', quantity: 2, foil: 1 });
     expect(isPrice(t.market_price)).toBe(true);
     await ctx.close();
+  });
+});
+
+test.describe('/api/v1 decks and cubes', () => {
+  test('deck list and detail, with avatar split out and prices', async ({ browser, request }) => {
+    const ctx = await newContextAs(browser, 'member');
+    const key = await createKey(ctx);
+
+    const deck = await (
+      await ctx.request.post('/api/decks', { data: { name: 'E2E API Deck', tags: ['Fire'] } })
+    ).json();
+    const avatar = await ctx.request.post(`/api/decks/${deck.id}/cards`, {
+      data: { card_id: AVATARS.inPool, zone: 'avatar' }
+    });
+    expect(avatar.ok()).toBeTruthy();
+    const spell = await ctx.request.post(`/api/decks/${deck.id}/cards`, {
+      data: { card_id: AVATARS.outOfPool, zone: 'spellbook', quantity: 2 }
+    });
+    expect(spell.ok()).toBeTruthy();
+
+    const list = await (await request.get('/api/v1/decks', { headers: bearer(key) })).json();
+    const summary = list.decks.find((d) => d.id === deck.id);
+    expect(summary).toEqual({
+      id: deck.id,
+      name: 'E2E API Deck',
+      format: 'standard',
+      visibility: 'private',
+      tags: ['Fire'],
+      cube_id: null,
+      card_count: 2, // the avatar does not count
+      updated_at: expect.any(String)
+    });
+
+    const res = await request.get(`/api/v1/decks/${deck.id}`, { headers: bearer(key) });
+    expect(res.status()).toBe(200);
+    const detail = await res.json();
+    expect(detail).toMatchObject({ ...summary, updated_at: expect.any(String) });
+    expect(detail.avatar).toEqual({
+      card_id: AVATARS.inPool,
+      name: 'Battlemage',
+      market_price: detail.avatar.market_price
+    });
+    expect(isPrice(detail.avatar.market_price)).toBe(true);
+    expect(detail.atlas).toEqual([]);
+    expect(detail.spellbook).toHaveLength(1);
+    expect(detail.spellbook[0]).toMatchObject({ card_id: AVATARS.outOfPool, quantity: 2 });
+    expect(Object.keys(detail.spellbook[0]).sort()).toEqual(
+      ['card_id', 'market_price', 'name', 'quantity'].sort()
+    );
+    expect(isPrice(detail.spellbook[0].market_price)).toBe(true);
+    await ctx.close();
+  });
+
+  test('an empty deck has a null avatar and empty zones', async ({ browser, request }) => {
+    const ctx = await newContextAs(browser, 'member');
+    const key = await createKey(ctx);
+    const deck = await (
+      await ctx.request.post('/api/decks', { data: { name: 'E2E Empty API Deck' } })
+    ).json();
+
+    const detail = await (
+      await request.get(`/api/v1/decks/${deck.id}`, { headers: bearer(key) })
+    ).json();
+    expect(detail).toMatchObject({
+      card_count: 0,
+      tags: [],
+      avatar: null,
+      atlas: [],
+      spellbook: []
+    });
+    await ctx.close();
+  });
+
+  test('cube list and detail', async ({ browser, request }) => {
+    const ctx = await newContextAs(browser, 'member');
+    const key = await createKey(ctx);
+
+    const list = await (await request.get('/api/v1/cubes', { headers: bearer(key) })).json();
+    const summary = list.cubes.find((c) => c.id === CUBE.id);
+    expect(Object.keys(summary).sort()).toEqual(
+      ['card_count', 'id', 'name', 'updated_at', 'visibility'].sort()
+    );
+    expect(summary.name).toBe(CUBE.name);
+
+    const detail = await (
+      await request.get(`/api/v1/cubes/${CUBE.id}`, { headers: bearer(key) })
+    ).json();
+    expect(detail.cards.length).toBeGreaterThan(0);
+    expect(detail.cards.some((c) => c.card_id === AVATARS.inPool)).toBe(true);
+    expect(detail.card_count).toBe(detail.cards.reduce((n, c) => n + c.quantity, 0));
+    for (const c of detail.cards) {
+      expect(Object.keys(c).sort()).toEqual(['card_id', 'market_price', 'name', 'quantity'].sort());
+      expect(isPrice(c.market_price)).toBe(true);
+    }
+    await ctx.close();
+  });
+
+  test("another user's deck and cube are 404, even when public", async ({ browser, request }) => {
+    const admin = await newContextAs(browser, 'admin');
+    const deck = await (
+      await admin.request.post('/api/decks', { data: { name: 'Admin Public Deck' } })
+    ).json();
+    await admin.request.patch(`/api/decks/${deck.id}`, { data: { visibility: 'public' } });
+    const cube = await (
+      await admin.request.post('/api/cubes', { data: { name: 'Admin Cube' } })
+    ).json();
+
+    const member = await newContextAs(browser, 'member');
+    const key = await createKey(member);
+    for (const path of [`/api/v1/decks/${deck.id}`, `/api/v1/cubes/${cube.id}`]) {
+      const res = await request.get(path, { headers: bearer(key) });
+      expect(res.status(), path).toBe(404);
+      expect((await res.json()).error).toMatch(/not found/);
+    }
+    const decks = (await (await request.get('/api/v1/decks', { headers: bearer(key) })).json())
+      .decks;
+    expect(decks.some((d) => d.id === deck.id)).toBe(false);
+    const cubes = (await (await request.get('/api/v1/cubes', { headers: bearer(key) })).json())
+      .cubes;
+    expect(cubes.some((c) => c.id === cube.id)).toBe(false);
+
+    await admin.close();
+    await member.close();
+  });
+
+  test('non-numeric ids are 404 JSON', async ({ browser, request }) => {
+    const ctx = await newContextAs(browser, 'member');
+    const key = await createKey(ctx);
+    for (const path of ['/api/v1/decks/abc', '/api/v1/cubes/1.5', '/api/v1/decks/-1']) {
+      const res = await request.get(path, { headers: bearer(key) });
+      expect(res.status(), path).toBe(404);
+      expect(await res.json()).toHaveProperty('error');
+    }
+    await ctx.close();
+  });
+
+  test('writes are 405 even with a valid key', async ({ browser, request }) => {
+    const ctx = await newContextAs(browser, 'member');
+    const key = await createKey(ctx);
+    const path = `/api/v1/decks/1`;
+    expect((await request.post(path, { headers: bearer(key), data: {} })).status()).toBe(405);
+    expect((await request.delete(path, { headers: bearer(key) })).status()).toBe(405);
+    expect(
+      (await request.patch('/api/v1/collection', { headers: bearer(key), data: {} })).status()
+    ).toBe(405);
+    await ctx.close();
+  });
+
+  test('every /api/v1 route rejects a missing key', async ({ request }) => {
+    for (const path of [
+      '/api/v1/collection',
+      '/api/v1/trades',
+      '/api/v1/decks',
+      '/api/v1/decks/1',
+      '/api/v1/cubes',
+      `/api/v1/cubes/${CUBE.id}`
+    ]) {
+      expect((await request.get(path)).status(), path).toBe(401);
+    }
   });
 });
