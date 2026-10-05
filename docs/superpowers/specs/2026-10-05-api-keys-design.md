@@ -86,15 +86,27 @@ Every handler starts with `const userId = await requireApiKey(request);` and ret
 cookies are ignored. Errors are `{ error: '...' }` JSON: 401 for a missing or invalid key, 404 for a
 missing or unowned record. Every card reference carries both `card_id` and `name`.
 
-| route                    | response                                                                                                                                    |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/v1/me`         | `{ id, name }` (no email)                                                                                                                   |
-| `GET /api/v1/collection` | `{ cards: [{ card_id, name, set_id, set_name, quantity }] }`                                                                                |
-| `GET /api/v1/decks`      | `{ decks: [{ id, name, format, visibility, tags, cube_id, card_count, updated_at }] }`                                                      |
-| `GET /api/v1/decks/[id]` | deck fields above plus `avatar` (`{ card_id, name }` or `null`), `atlas`, `spellbook` (each `[{ card_id, name, quantity }]`)                |
-| `GET /api/v1/cubes`      | `{ cubes: [{ id, name, visibility, card_count, updated_at }] }`                                                                             |
-| `GET /api/v1/cubes/[id]` | cube fields above plus `cards: [{ card_id, name, quantity }]`                                                                               |
-| `GET /api/v1/trades`     | `{ trades: [{ id, card_id, name, set_name, quantity, foil, location, expected_value, list_quantity }] }` — `status = 'available'` rows only |
+**Prices.** Every card entry has `market_price`: a number in USD, or `null` when there is no
+price data. It comes from `resolve()` in `loadPriceResolver()` (`src/lib/server/priceSync.js`), the
+same resolver the trades and friends pages use, so the API and the UI agree:
+
+- collection rows: `resolve(card_id, set_name)`
+- trades: `resolve(card_id, set_name, foil ? 'foil' : 'normal')`
+- deck and cube cards, which have no set: `resolve(card_id, null)`, i.e. the cheapest
+  non-foil printing
+
+The resolver is loaded once per request, not once per card. The avatar entry carries
+`market_price` too. No totals: a client can sum them.
+
+| route                    | response                                                                                                                                                  |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/v1/me`         | `{ id, name }` (no email)                                                                                                                                 |
+| `GET /api/v1/collection` | `{ cards: [{ card_id, name, set_id, set_name, quantity, market_price }] }`                                                                                |
+| `GET /api/v1/decks`      | `{ decks: [{ id, name, format, visibility, tags, cube_id, card_count, updated_at }] }`                                                                    |
+| `GET /api/v1/decks/[id]` | deck fields above plus `avatar` (`{ card_id, name, market_price }` or `null`), `atlas`, `spellbook` (each `[{ card_id, name, quantity, market_price }]`)  |
+| `GET /api/v1/cubes`      | `{ cubes: [{ id, name, visibility, card_count, updated_at }] }`                                                                                           |
+| `GET /api/v1/cubes/[id]` | cube fields above plus `cards: [{ card_id, name, quantity, market_price }]`                                                                               |
+| `GET /api/v1/trades`     | `{ trades: [{ id, card_id, name, set_name, quantity, foil, location, expected_value, list_quantity, market_price }] }` — `status = 'available'` rows only |
 
 Rules:
 
@@ -103,7 +115,7 @@ Rules:
 - `tags` is parsed from its stored JSON string into an array.
 - `card_count` excludes the avatar for decks (matching the 30/60 counts).
 - A non-numeric `[id]` is a 404.
-- Out of scope: prices, card images, pagination, rate limiting, friends' data.
+- Out of scope: totals, card images, pagination, rate limiting, friends' data.
 
 ## UI: `/profile`
 
@@ -126,7 +138,8 @@ Uses existing helpers (`gotoHydrated`, `page.request`); no auth bypass.
   list, and revokes it; the list updates.
 - **Auth**: on `/api/v1/me`, no header → 401, garbage key → 401, revoked key → 401, a
   signed-in session with no key → 401.
-- **Data**: each `/api/v1/*` route returns the member's data in the documented shape.
+- **Data**: each `/api/v1/*` route returns the member's data in the documented shape,
+  with `market_price` present (a number or `null`) on every card entry.
 - **Ownership**: with the member's key, the admin's deck and cube by id → 404.
 - **Read-only**: `POST` and `DELETE` to `/api/v1/decks/[id]` with a valid key → 405.
 - **Management isolation**: `POST /api/keys` with only a Bearer key → 401; the member
