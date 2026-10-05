@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { signIn, USERS } from './helpers/auth.js';
 import { AVATARS, CUBE } from './helpers/fixtures.js';
+import { gotoHydrated } from './helpers/hydration.js';
 
 /**
  * Read-only API keys: minted on /profile (session only), used against /api/v1/*
@@ -432,5 +433,50 @@ test.describe('/api/v1 decks and cubes', () => {
     ]) {
       expect((await request.get(path)).status(), path).toBe(401);
     }
+  });
+});
+
+test.describe('/profile API keys UI', () => {
+  test('create shows the key once, revoke removes it', async ({ page, request }) => {
+    await signIn(page.context(), 'member');
+    await gotoHydrated(page, '/profile');
+
+    await page.getByLabel('Key name').fill('UI bot');
+    await page.getByRole('button', { name: 'Create key' }).click();
+
+    const shown = page.locator('code.new-key');
+    await expect(shown).toHaveText(/^sk_[A-Za-z0-9_-]{43}$/);
+    const key = (await shown.textContent()).trim();
+
+    const me = await request.get('/api/v1/me', { headers: bearer(key) });
+    expect(me.status()).toBe(200);
+
+    const row = page.locator('li.api-key', { hasText: 'UI bot' });
+    await expect(row).toContainText(key.slice(0, 8));
+    await expect(row).toContainText('Never');
+
+    // Shown once: a reload must not bring the full key back.
+    await gotoHydrated(page, '/profile');
+    await expect(page.locator('code.new-key')).toHaveCount(0);
+    await expect(page.locator('body')).not.toContainText(key);
+
+    page.once('dialog', (d) => d.accept());
+    await page
+      .locator('li.api-key', { hasText: 'UI bot' })
+      .getByRole('button', { name: 'Revoke' })
+      .click();
+    await expect(page.locator('li.api-key', { hasText: 'UI bot' })).toHaveCount(0);
+    expect((await request.get('/api/v1/me', { headers: bearer(key) })).status()).toBe(401);
+  });
+
+  test('Create key is disabled until a name is typed', async ({ page }) => {
+    await signIn(page.context(), 'member');
+    await gotoHydrated(page, '/profile');
+    const button = page.getByRole('button', { name: 'Create key' });
+    await expect(button).toBeDisabled();
+    await page.getByLabel('Key name').fill('   ');
+    await expect(button).toBeDisabled();
+    await page.getByLabel('Key name').fill('ok');
+    await expect(button).toBeEnabled();
   });
 });

@@ -1,5 +1,6 @@
 <script>
   import { untrack } from 'svelte';
+  import { page } from '$app/stores';
 
   let { data } = $props();
 
@@ -37,6 +38,59 @@
     }
     saving = false;
   }
+
+  // Seeded once from the load; afterwards create/revoke update it locally so the
+  // one-time key panel survives (a reload would — correctly — lose it).
+  let apiKeys = $state(untrack(() => data.apiKeys));
+  let newKeyName = $state('');
+  let newKey = $state(null); // { id, key, name } — the only time the full key is visible
+  let creatingKey = $state(false);
+
+  async function createKey() {
+    creatingKey = true;
+    const res = await fetch('/api/keys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newKeyName })
+    });
+    const body = await res.json();
+    if (res.ok) {
+      newKey = body;
+      apiKeys = [
+        {
+          id: body.id,
+          name: body.name,
+          prefix: body.prefix,
+          created_at: body.created_at,
+          last_used_at: null
+        },
+        ...apiKeys
+      ];
+      newKeyName = '';
+    } else {
+      showToast(body.error || 'Failed to create key');
+    }
+    creatingKey = false;
+  }
+
+  async function revokeKey(apiKey) {
+    if (!confirm(`Revoke "${apiKey.name}"? Anything using it will stop working.`)) return;
+    const res = await fetch(`/api/keys/${apiKey.id}`, { method: 'DELETE' });
+    if (res.ok) {
+      apiKeys = apiKeys.filter((k) => k.id !== apiKey.id);
+      if (newKey?.id === apiKey.id) newKey = null;
+      showToast('Key revoked');
+    } else {
+      showToast('Failed to revoke key');
+    }
+  }
+
+  async function copyNewKey() {
+    await navigator.clipboard.writeText(newKey.key);
+    showToast('Copied!');
+  }
+
+  const formatDate = (iso) => (iso ? new Date(iso).toLocaleDateString() : 'Never');
 </script>
 
 <svelte:head>
@@ -90,6 +144,65 @@
         {data.user?.created_at ? new Date(data.user.created_at).toLocaleDateString() : 'Unknown'}
       </dd>
     </dl>
+  </section>
+
+  <section class="profile-section">
+    <h2>API Keys</h2>
+    <p class="hint">
+      Read-only keys for your own bots and scripts. A key can read your collection, decks, cubes and
+      trade binder — nothing else, and it can't change anything.
+    </p>
+
+    {#if newKey}
+      <div class="new-key-panel">
+        <p>Copy this key now — you won't be able to see it again.</p>
+        <div class="new-key-row">
+          <code class="new-key">{newKey.key}</code>
+          <button class="btn btn-secondary" onclick={copyNewKey}>Copy</button>
+        </div>
+      </div>
+    {/if}
+
+    <div class="key-create">
+      <label class="form-field">
+        <span>Key name</span>
+        <input
+          type="text"
+          class="input"
+          maxlength="50"
+          bind:value={newKeyName}
+          placeholder="e.g. Discord bot"
+        />
+      </label>
+      <button
+        class="btn btn-primary"
+        onclick={createKey}
+        disabled={creatingKey || !newKeyName.trim()}
+      >
+        {creatingKey ? 'Creating...' : 'Create key'}
+      </button>
+    </div>
+
+    {#if apiKeys.length > 0}
+      <ul class="item-list">
+        {#each apiKeys as apiKey (apiKey.id)}
+          <li class="api-key">
+            <span>
+              {apiKey.name}
+              <code class="key-prefix">{apiKey.prefix}…</code>
+            </span>
+            <span class="item-meta">
+              Created {formatDate(apiKey.created_at)} · Last used {formatDate(apiKey.last_used_at)}
+            </span>
+            <button class="btn btn-secondary" onclick={() => revokeKey(apiKey)}> Revoke </button>
+          </li>
+        {/each}
+      </ul>
+    {/if}
+
+    <p class="hint">
+      Usage: <code>curl -H "Authorization: Bearer sk_…" {$page.url.origin}/api/v1/collection</code>
+    </p>
   </section>
 
   {#if data.decks.length > 0}
@@ -233,6 +346,51 @@
     font-size: 0.7rem;
     color: var(--color-text-muted);
     text-transform: uppercase;
+  }
+
+  .new-key-panel {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border: 1px solid var(--color-success);
+    border-radius: var(--radius-md);
+  }
+
+  .new-key-panel p {
+    margin: 0 0 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .new-key-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .new-key {
+    flex: 1;
+    overflow-wrap: anywhere;
+    font-size: 0.8rem;
+  }
+
+  .key-create {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+    margin-bottom: 1rem;
+  }
+
+  .key-create .form-field {
+    flex: 1;
+  }
+
+  .key-prefix {
+    margin-left: 0.4rem;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+
+  .item-list li.api-key {
+    gap: 0.5rem;
   }
 
   .toast {
