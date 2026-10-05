@@ -188,3 +188,89 @@ test.describe('key auth on /api/v1', () => {
     await ctx.close();
   });
 });
+
+const isPrice = (v) => v === null || (typeof v === 'number' && Number.isFinite(v));
+
+test.describe('/api/v1 data', () => {
+  test('collection returns the owner rows with prices', async ({ browser, request }) => {
+    const ctx = await newContextAs(browser, 'member');
+    const key = await createKey(ctx);
+
+    const res = await request.get('/api/v1/collection', { headers: bearer(key) });
+    expect(res.status()).toBe(200);
+    const { cards } = await res.json();
+
+    // The seed gives the member ~700 collection rows; compare against the
+    // existing session API rather than hardcoding a count.
+    const viaSession = await (await ctx.request.get('/api/collection')).json();
+    expect(cards.length).toBe(viaSession.length);
+    expect(cards.length).toBeGreaterThan(0);
+
+    for (const c of cards) {
+      expect(Object.keys(c).sort()).toEqual(
+        ['card_id', 'market_price', 'name', 'quantity', 'set_id', 'set_name'].sort()
+      );
+      expect(typeof c.name).toBe('string');
+      expect(isPrice(c.market_price), `${c.card_id} ${c.market_price}`).toBe(true);
+    }
+    await ctx.close();
+  });
+
+  test('collection is empty for a user with none, not someone else’s', async ({
+    browser,
+    request
+  }) => {
+    const ctx = await newContextAs(browser, 'admin');
+    const key = await createKey(ctx);
+    const { cards } = await (
+      await request.get('/api/v1/collection', { headers: bearer(key) })
+    ).json();
+    expect(cards).toEqual([]);
+    await ctx.close();
+  });
+
+  test('trades lists only available entries, with prices', async ({ browser, request }) => {
+    const ctx = await newContextAs(browser, 'member');
+    const key = await createKey(ctx);
+    const SET_NAME = 'E2E API Trades';
+
+    const keep = await (
+      await ctx.request.post('/api/trades', {
+        data: { card_id: 'battlemage', set_name: SET_NAME, quantity: 2, foil: true }
+      })
+    ).json();
+    const gone = await (
+      await ctx.request.post('/api/trades', {
+        data: { card_id: 'sorcerer', set_name: SET_NAME, quantity: 1 }
+      })
+    ).json();
+    const patch = await ctx.request.patch('/api/trades', {
+      data: { id: gone.id, status: 'archived' }
+    });
+    expect(patch.ok()).toBeTruthy();
+
+    const res = await request.get('/api/v1/trades', { headers: bearer(key) });
+    expect(res.status()).toBe(200);
+    const mine = (await res.json()).trades.filter((t) => t.set_name === SET_NAME);
+
+    expect(mine.map((t) => t.id)).toEqual([keep.id]);
+    const [t] = mine;
+    expect(Object.keys(t).sort()).toEqual(
+      [
+        'card_id',
+        'expected_value',
+        'foil',
+        'id',
+        'list_quantity',
+        'location',
+        'market_price',
+        'name',
+        'quantity',
+        'set_name'
+      ].sort()
+    );
+    expect(t).toMatchObject({ card_id: 'battlemage', name: 'Battlemage', quantity: 2, foil: 1 });
+    expect(isPrice(t.market_price)).toBe(true);
+    await ctx.close();
+  });
+});
