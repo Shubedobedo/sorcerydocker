@@ -299,3 +299,23 @@ export const friendships = sqliteTable('friendships', {
     .notNull()
     .$defaultFn(() => new Date().toISOString())
 });
+
+// ============================================================
+// API KEYS
+// ============================================================
+
+// Read-only keys a user mints for their own bots. Only a SHA-256 hash of the key
+// is stored; the key itself is shown once at creation and never again.
+export const apiKeys = sqliteTable('api_keys', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  user_id: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  key_hash: text('key_hash').notNull().unique(),
+  prefix: text('prefix').notNull(), // first 8 chars of the key, for telling keys apart
+  created_at: text('created_at')
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+  last_used_at: text('last_used_at')
+});

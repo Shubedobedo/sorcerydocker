@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { db } from '$lib/db/index.js';
 import { decks, cubes, users } from '$lib/db/schema.js';
 import { eq } from 'drizzle-orm';
+import { listApiKeys } from '$lib/server/apiKeys.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ locals }) {
@@ -23,6 +24,7 @@ export async function load({ locals }) {
   return {
     user: dbUser,
     decks: userDecks,
-    cubes: userCubes
+    cubes: userCubes,
+    apiKeys: await listApiKeys(session.user.id)
   };
 }

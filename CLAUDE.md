@@ -105,6 +105,10 @@ npm run dev:login      # mint an Auth.js session cookie to skip the Google login
   `gh` works normally in a regular terminal.
 - There is no Python on this machine; `python` hits the Windows Store alias stub and
   exits 49. Use `node -e` for one-off scripting.
+- Git Bash (the shell Claude Code's Bash tool runs) rewrites any argument that starts
+  with `/` into a Windows path, so `npx playwright test -g "/api/v1 data"` silently
+  becomes a path and reports "No tests found". Drop the leading slash (`-g "v1 data"`) or
+  prefix the command with `MSYS_NO_PATHCONV=1`.
 
 ## MCP
 
@@ -169,11 +173,15 @@ JSON endpoints under `src/routes/api/**/+server.js`. Global styles and design to
   exists but `db:migrate` is not wired into build/startup.
   - **When changing the schema, update BOTH `schema.js` AND the raw SQL in `index.js`**
     (add a `CREATE TABLE`/`ALTER TABLE` there), or deployed databases will not get the change.
-  - **Back up the database before any schema edit**: `cp data/sorcery.db data/sorcery.db.bak`.
-    Because that SQL runs on import, a schema change is applied to the real
-    `data/sorcery.db` the moment the dev server restarts — there is no staging step and
-    no review point. SQLite cannot drop or retype a column in place, so a mistake here is
-    tedious to unwind. The `.bak` file is gitignored by the `data/` rule.
+  - **Back up the database before any schema edit**, with `VACUUM INTO`, not `cp`:
+    `node -e "new (require('better-sqlite3'))('data/sorcery.db',{readonly:true}).exec(\"VACUUM INTO 'data/sorcery.db.bak'\")"`
+    (delete an old `.bak` first — `VACUUM INTO` refuses to overwrite). The DB runs in WAL
+    mode, so recent writes can sit in `sorcery.db-wal`; a plain `cp` of `sorcery.db` misses
+    them and produces a stale backup. Because the schema SQL runs on import, a change is
+    applied to the real `data/sorcery.db` as soon as a dev server loads it — including one
+    already running, which picks up the edit through Vite without a restart. There is no
+    staging step and no review point. SQLite cannot drop or retype a column in place, so a
+    mistake here is tedious to unwind. The `.bak` file is gitignored by the `data/` rule.
 - All timestamps are ISO strings in `TEXT` columns. Prices are stored as `TEXT` to
   preserve decimal precision. JSON-array fields (`cards.elements`, `cards.set_ids`,
   `cubes.settings`, `decks.tags`) are stringified JSON — `JSON.parse` on read.
@@ -266,3 +274,24 @@ is no route-group guard, and a `GET` handler that only looks a row up by id will
 serve a private record to anyone who guesses the id (this was a real bug in
 `/api/decks/[id]/export`). Gates on a read return **404, not 403**, so the response does
 not confirm that a private row exists at that id.
+
+### API keys
+
+Users mint read-only keys on `/profile` so their own bots can read their data.
+`src/lib/server/apiKeys.js` owns everything about a key; `src/lib/server/apiV1.js` holds
+the query helpers shared by the `/api/v1` routes.
+
+- **Two auth worlds that never mix.** `/api/v1/*` accepts **only** `Authorization: Bearer
+sk_…` and ignores the session cookie; every other route, including key management at
+  `/api/keys`, accepts **only** the session. A key therefore can never mint or revoke keys.
+  Keep `hooks.server.js` out of it — keys are not wired into `locals.auth()`.
+- **Read-only by construction**: `/api/v1` routes export only `GET`, so SvelteKit answers
+  anything else with 405. Never add a write handler there.
+- **Owner-only scope**: every `/api/v1` query filters on the key owner's `user_id`, and the
+  `[id]` routes match on id **and** owner, so another user's deck is a 404 even when it is
+  public. Friends' shared data is deliberately out of scope.
+- Only a SHA-256 hash and an 8-char display prefix are stored; the key is shown once.
+  `requireApiKey` returns `null` instead of throwing `error(401)` so responses keep the
+  app's `{ error }` shape. `last_used_at` is written at most once a minute per key.
+- Prices come from `resolve()` in `loadPriceResolver()`, the same resolver the trades page
+  uses. Deck and cube cards have no printing, so they get the cheapest non-foil price.
