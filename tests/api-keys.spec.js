@@ -246,34 +246,42 @@ test.describe('/api/v1 data', () => {
         data: { card_id: 'sorcerer', set_name: SET_NAME, quantity: 1 }
       })
     ).json();
-    const patch = await ctx.request.patch('/api/trades', {
-      data: { id: gone.id, status: 'archived' }
-    });
-    expect(patch.ok()).toBeTruthy();
+    // trade-list.spec.js runs after this file against the same member binder and
+    // expects exactly one Battlemage entry, so these rows must not outlive the test.
+    try {
+      const patch = await ctx.request.patch('/api/trades', {
+        data: { id: gone.id, status: 'archived' }
+      });
+      expect(patch.ok()).toBeTruthy();
 
-    const res = await request.get('/api/v1/trades', { headers: bearer(key) });
-    expect(res.status()).toBe(200);
-    const mine = (await res.json()).trades.filter((t) => t.set_name === SET_NAME);
+      const res = await request.get('/api/v1/trades', { headers: bearer(key) });
+      expect(res.status()).toBe(200);
+      const mine = (await res.json()).trades.filter((t) => t.set_name === SET_NAME);
 
-    expect(mine.map((t) => t.id)).toEqual([keep.id]);
-    const [t] = mine;
-    expect(Object.keys(t).sort()).toEqual(
-      [
-        'card_id',
-        'expected_value',
-        'foil',
-        'id',
-        'list_quantity',
-        'location',
-        'market_price',
-        'name',
-        'quantity',
-        'set_name'
-      ].sort()
-    );
-    expect(t).toMatchObject({ card_id: 'battlemage', name: 'Battlemage', quantity: 2, foil: 1 });
-    expect(isPrice(t.market_price)).toBe(true);
-    await ctx.close();
+      expect(mine.map((t) => t.id)).toEqual([keep.id]);
+      const [t] = mine;
+      expect(Object.keys(t).sort()).toEqual(
+        [
+          'card_id',
+          'expected_value',
+          'foil',
+          'id',
+          'list_quantity',
+          'location',
+          'market_price',
+          'name',
+          'quantity',
+          'set_name'
+        ].sort()
+      );
+      expect(t).toMatchObject({ card_id: 'battlemage', name: 'Battlemage', quantity: 2, foil: 1 });
+      expect(isPrice(t.market_price)).toBe(true);
+    } finally {
+      for (const id of [keep.id, gone.id]) {
+        await ctx.request.delete('/api/trades', { data: { id } });
+      }
+      await ctx.close();
+    }
   });
 });
 
