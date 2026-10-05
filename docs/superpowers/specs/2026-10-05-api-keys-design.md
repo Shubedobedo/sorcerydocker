@@ -76,7 +76,7 @@ key cannot mint or revoke keys.
 | route                   | behaviour                                                                             |
 | ----------------------- | ------------------------------------------------------------------------------------- |
 | `GET /api/keys`         | 401 without a session; else `{ keys: listApiKeys(...) }`                              |
-| `POST /api/keys`        | body `{ name }`; 400 on a bad name or over the limit; else 200 with the full key once |
+| `POST /api/keys`        | body `{ name }`; 400 on a bad name or over the limit; else 201 with the full key once |
 | `DELETE /api/keys/[id]` | 404 if the key does not exist or belongs to someone else                              |
 
 ## Read-only API: `/api/v1/*`
