@@ -65,7 +65,8 @@ export default function seed() {
     'cubes',
     'trades',
     'friend_requests',
-    'friendships'
+    'friendships',
+    'api_keys'
   ]) {
     try {
       target.exec(`DELETE FROM ${table}`);
