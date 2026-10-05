@@ -477,6 +477,21 @@ test.describe('/profile API keys UI', () => {
     expect((await request.get('/api/v1/me', { headers: bearer(key) })).status()).toBe(401);
   });
 
+  test('Copy says so when the clipboard is unavailable', async ({ page }) => {
+    // No clipboard permission is granted here, so writeText rejects — the same
+    // thing that happens on a plain-http self-hosted install, where
+    // navigator.clipboard does not exist at all. The key is shown only once, so
+    // a silent failure would leave the user believing they had copied it.
+    await signIn(page.context(), 'member');
+    await gotoHydrated(page, '/profile');
+    await page.getByLabel('Key name').fill('copy bot');
+    await page.getByRole('button', { name: 'Create key' }).click();
+    await expect(page.locator('code.new-key')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Copy', exact: true }).click();
+    await expect(page.locator('.toast')).toContainText('Copy failed');
+  });
+
   test('Create key is disabled until a name is typed', async ({ page }) => {
     await signIn(page.context(), 'member');
     await gotoHydrated(page, '/profile');

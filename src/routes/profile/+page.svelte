@@ -86,8 +86,15 @@
   }
 
   async function copyNewKey() {
-    await navigator.clipboard.writeText(newKey.key);
-    showToast('Copied!');
+    // navigator.clipboard only exists in a secure context, so a self-hosted
+    // install served over plain http has none. The key is shown only once —
+    // say plainly when the copy didn't happen.
+    try {
+      await navigator.clipboard.writeText(newKey.key);
+      showToast('Copied!');
+    } catch {
+      showToast('Copy failed — select the key and copy it manually');
+    }
   }
 
   const formatDate = (iso) => (iso ? new Date(iso).toLocaleDateString() : 'Never');
