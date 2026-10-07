@@ -1,7 +1,8 @@
 import { json } from '@sveltejs/kit';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, notInArray, sql } from 'drizzle-orm';
 import { db } from '$lib/db/index.js';
 import { cubeCards, cubes, deckCards, decks } from '$lib/db/schema.js';
+import { BASIC_SITES } from '$lib/server/basicSites.js';
 
 /**
  * Shared helpers for the read-only /api/v1 routes. Every route there is GET-only,
@@ -56,7 +57,10 @@ export async function deckSummaries(userId, deckId) {
   return rows.map((d) => ({ ...d, tags: parseTags(d.tags) }));
 }
 
-/** The owner's cubes, or just one when `cubeId` is given. card_count sums copies. */
+/**
+ * The owner's cubes, or just one when `cubeId` is given. card_count sums copies,
+ * leaving out basic sites, which sit outside the cube's size.
+ */
 export async function cubeSummaries(userId, cubeId) {
   const owned = eq(cubes.user_id, userId);
   return db
@@ -64,7 +68,10 @@ export async function cubeSummaries(userId, cubeId) {
       id: cubes.id,
       name: cubes.name,
       visibility: cubes.visibility,
-      card_count: sql`coalesce(sum(${cubeCards.quantity}), 0)`.mapWith(Number),
+      card_count:
+        sql`coalesce(sum(case when ${notInArray(cubeCards.card_id, Object.values(BASIC_SITES))} then ${cubeCards.quantity} end), 0)`.mapWith(
+          Number
+        ),
       updated_at: cubes.updated_at
     })
     .from(cubes)

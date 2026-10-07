@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { db } from '$lib/db/index.js';
 import { cubes, cubeCards, cards, cardImages } from '$lib/db/schema.js';
 import { eq, and, like } from 'drizzle-orm';
+import { isBasicSite } from '$lib/server/basicSites.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ locals, request, params }) {
@@ -19,9 +20,11 @@ export async function POST({ locals, request, params }) {
   // Get cube card pool
   const cubeCardRows = await db.select().from(cubeCards).where(eq(cubeCards.cube_id, cube.id));
 
-  // Expand into individual cards
+  // Expand into individual cards. Basic sites are free to play, so they are
+  // never dealt into packs.
   const pool = [];
   for (const cc of cubeCardRows) {
+    if (isBasicSite(cc.card_id)) continue;
     const card = await db.query.cards.findFirst({ where: eq(cards.id, cc.card_id) });
     if (card) {
       const img = await db.query.cardImages.findFirst({
