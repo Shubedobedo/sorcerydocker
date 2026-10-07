@@ -388,6 +388,28 @@ test.describe('buildPool: run-dry and edge cases', () => {
     expect(res.warning).toBeNull();
   });
 
+  test('up-front avatars beyond the size never rewrite it, in either mode', () => {
+    // Only the last card's full copies may round the size up (by at most 3).
+    // Avatars added up front that alone exceed the size are not an overshoot.
+    const upfront = Array.from({ length: 34 }, (_, n) =>
+      fake(`avatar-${n}`, { type: 'Avatar', rarity: null })
+    );
+    for (const randomizeCopies of [true, false]) {
+      const res = buildPool({
+        cards: catalog(),
+        upfront,
+        cubeSize: 20,
+        randomizeCopies,
+        rng: mulberry32(1)
+      });
+      expect(res.totalAdded).toBe(34);
+      expect(res.cubeSize, `randomizeCopies=${randomizeCopies}`).toBe(20);
+      expect(res.notes).toEqual([
+        '34 up-front avatars exceed the cube size of 20; the pool holds all of them and nothing else.'
+      ]);
+    }
+  });
+
   test('an rng stuck at 0 still terminates and fills exactly', () => {
     const res = buildPool({ cards: catalog(), cubeSize: 200, rng: () => 0 });
     expect(res.totalAdded).toBe(200);

@@ -126,6 +126,19 @@ test.describe('generate endpoint', () => {
     expect(Object.keys(cube.res.elementCounts.sites)).toEqual(['Air', 'Earth', 'Fire', 'Water']);
   });
 
+  test('more up-front avatars than the size does not rewrite the saved size', async ({ page }) => {
+    const cube = await generate(page, 'E2E Avatar Overflow', {
+      cubeSize: 20,
+      randomizeCopies: false,
+      includeAvatars: true,
+      includeAllAvatars: true
+    });
+    expect(cube.res.poolSize).toBeGreaterThan(20); // the catalog has ~34 avatars
+    expect(cube.res.cubeSize).toBe(20);
+    expect(cube.res.notes.join('\n')).not.toContain('rounded up');
+    expect(savedSettings(cube.id).cubeSize).toBe(20);
+  });
+
   test('basic sites are still added and still outside the size', async ({ page }) => {
     const cube = await generate(page, 'E2E Basics Still', {
       elements: ['Water'],

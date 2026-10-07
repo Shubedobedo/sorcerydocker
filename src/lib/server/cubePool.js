@@ -246,7 +246,13 @@ export function buildPool({
 
   let finalSize = target;
   let warning = null;
-  if (totalAdded > target && !randomizeCopies) {
+  if (upfront.length > target) {
+    // Not an overshoot: the draw never ran, so the size stays as set.
+    notes.unshift(
+      `${upfront.length} up-front avatars exceed the cube size of ${target}; the pool holds all of them and nothing else.`
+    );
+  } else if (totalAdded > target && !randomizeCopies) {
+    // Only the last card's full copies can push past the target (by at most 3).
     notes.unshift(
       `Pool is ${totalAdded} (was ${target}): cube size rounded up to fit the last card at full copies.`
     );
