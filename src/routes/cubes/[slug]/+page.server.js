@@ -2,6 +2,7 @@ import { error } from '@sveltejs/kit';
 import { db } from '$lib/db/index.js';
 import { cubes, cubeCards, cards, cardImages, friendships, decks, users } from '$lib/db/schema.js';
 import { eq, and, like, asc } from 'drizzle-orm';
+import { isBasicSite } from '$lib/server/basicSites.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ locals, params }) {
@@ -44,7 +45,10 @@ export async function load({ locals, params }) {
 
   enriched.sort((a, b) => a.card.name.localeCompare(b.card.name));
 
-  const totalCards = enriched.reduce((sum, cc) => sum + cc.quantity, 0);
+  // Basic sites are listed in the pool but sit outside the cube's size.
+  const totalCards = enriched
+    .filter((cc) => !isBasicSite(cc.card_id))
+    .reduce((sum, cc) => sum + cc.quantity, 0);
 
   // Get decks linked to this cube
   const linkedDecks = await db.select().from(decks).where(eq(decks.cube_id, cube.id));

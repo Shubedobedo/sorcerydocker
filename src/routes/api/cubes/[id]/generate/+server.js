@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { db } from '$lib/db/index.js';
 import { cubes, cubeCards, cards, cardImages } from '$lib/db/schema.js';
 import { eq, and, like } from 'drizzle-orm';
+import { BASIC_SITE_COPIES, basicSitesFor, isBasicSite } from '$lib/server/basicSites.js';
 
 /** @type {import('./$types').RequestHandler} */
 export async function POST({ locals, request, params }) {
@@ -24,8 +25,11 @@ export async function POST({ locals, request, params }) {
     includeAllAvatars = false
   } = settings;
 
-  // Fetch all cards from the database
-  let allCards = await db.select().from(cards);
+  // Fetch all cards from the database. Basic sites stay out of the random draw:
+  // they are added afterwards at a fixed count and don't use up the cube size.
+  const catalog = await db.select().from(cards);
+  const catalogIds = new Set(catalog.map((c) => c.id));
+  let allCards = catalog.filter((c) => !isBasicSite(c.id));
 
   // Get all card images so we can filter out Box_Topper-only cards per set
   const allImages = await db.select().from(cardImages);
@@ -125,6 +129,12 @@ export async function POST({ locals, request, params }) {
     // Re-shuffle for next pass for more randomness
     shuffled.sort(() => Math.random() - 0.5);
     passes++;
+  }
+
+  // Add the basic site of every allowed element, regardless of the set filter.
+  // totalAdded is left alone: basics don't count toward the cube size.
+  for (const basicId of basicSitesFor(allowedElements)) {
+    if (catalogIds.has(basicId)) pool[basicId] = BASIC_SITE_COPIES;
   }
 
   // Clear existing cube cards and insert new pool
