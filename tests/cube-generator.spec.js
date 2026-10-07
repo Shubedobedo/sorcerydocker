@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import Database from 'better-sqlite3';
 import { signIn } from './helpers/auth.js';
+import { gotoHydrated } from './helpers/hydration.js';
 
 /**
  * The cube generator end to end: what POST /api/cubes/:id/generate stores and
@@ -137,5 +138,96 @@ test.describe('generate endpoint', () => {
       .filter(([id]) => !BASICS.includes(id))
       .reduce((n, [, q]) => n + q, 0);
     expect(nonBasic).toBe(cube.res.poolSize);
+  });
+});
+
+test.describe('edit page controls', () => {
+  test.beforeEach(async ({ page }) => {
+    await signIn(page.context(), 'member');
+  });
+
+  async function newCube(page, name) {
+    return (await page.request.post('/api/cubes', { data: { name } })).json();
+  }
+
+  test('both new controls save and survive a reload', async ({ page }) => {
+    const cube = await newCube(page, 'E2E Controls Cube');
+    await gotoHydrated(page, `/cubes/${cube.slug}/edit`);
+
+    const toggle = page.getByLabel('Randomize copy counts');
+    const slider = page.getByLabel('Element variance');
+    await expect(toggle).toBeChecked(); // default on
+    await expect(slider).toHaveValue('100'); // default fully random
+
+    await toggle.uncheck();
+    await slider.fill('45');
+    await page.getByRole('button', { name: 'Save Settings' }).click();
+    await expect(page.locator('.gen-result')).toHaveText('Settings saved!');
+
+    await gotoHydrated(page, `/cubes/${cube.slug}/edit`);
+    await expect(page.getByLabel('Randomize copy counts')).not.toBeChecked();
+    await expect(page.getByLabel('Element variance')).toHaveValue('45');
+    expect(savedSettings(cube.id)).toMatchObject({ randomizeCopies: false, elementVariance: 45 });
+  });
+
+  test('copies off disables the Max inputs and keeps their values', async ({ page }) => {
+    const cube = await newCube(page, 'E2E Max Inputs Cube');
+    await gotoHydrated(page, `/cubes/${cube.slug}/edit`);
+    const maxInputs = page.locator('.max-input');
+    await expect(maxInputs).toHaveCount(4);
+
+    await maxInputs.first().fill('2');
+    await page.getByLabel('Randomize copy counts').uncheck();
+    for (let i = 0; i < 4; i++) await expect(maxInputs.nth(i)).toBeDisabled();
+    await expect(page.locator('.copies-hint')).toHaveText(
+      'Every card gets standard copies: 4 Ordinary, 3 Exceptional, 2 Elite, 1 Unique. The cube size may round up by a few cards to fit the last card.'
+    );
+    // The rarity on/off checkboxes keep working.
+    await expect(page.getByLabel('Exceptional', { exact: true })).toBeEnabled();
+
+    await page.getByLabel('Randomize copy counts').check();
+    for (let i = 0; i < 4; i++) await expect(maxInputs.nth(i)).toBeEnabled();
+    await expect(maxInputs.first()).toHaveValue('2');
+    await expect(page.locator('.copies-hint')).toHaveCount(0);
+  });
+
+  test('the variance slider is disabled with exactly one element', async ({ page }) => {
+    const cube = await newCube(page, 'E2E Slider Cube');
+    await gotoHydrated(page, `/cubes/${cube.slug}/edit`);
+    const slider = page.getByLabel('Element variance');
+    await expect(slider).toBeEnabled(); // none selected = all four
+    await page.getByRole('button', { name: 'Air', exact: true }).click();
+    await expect(slider).toBeDisabled();
+    await page.getByRole('button', { name: 'Fire', exact: true }).click();
+    await expect(slider).toBeEnabled();
+  });
+
+  test('an overshooting generate shows the new size, notes and breakdown', async ({ page }) => {
+    const cube = await newCube(page, 'E2E Overshoot UI Cube');
+    await gotoHydrated(page, `/cubes/${cube.slug}/edit`);
+
+    await page.locator('.size-input').fill('30');
+    await page.getByLabel('Randomize copy counts').uncheck();
+    for (const r of ['Exceptional', 'Elite', 'Unique']) {
+      await page.getByLabel(r, { exact: true }).uncheck();
+    }
+    await page.getByRole('button', { name: 'Generate Cube Pool' }).click();
+
+    await expect(page.locator('.gen-result')).toHaveText('Generated cube with 32 cards!');
+    await expect(page.locator('.size-input')).toHaveValue('32');
+    await expect(page.locator('.gen-notes')).toContainText(
+      'Pool is 32 (was 30): cube size rounded up to fit the last card at full copies.'
+    );
+    await expect(page.locator('.gen-breakdown')).toHaveText(
+      /^Air \d+ · Earth \d+ · Fire \d+ · Water \d+ \(sites \d+ \/ \d+ \/ \d+ \/ \d+\)$/
+    );
+    await expect(page.locator('.toast-warning')).toHaveCount(0); // a note, not an error
+
+    // Saving again must keep 32, not PATCH the old 30 back.
+    await page.getByRole('button', { name: 'Save Settings' }).click();
+    await expect(page.locator('.gen-result')).toHaveText('Settings saved!');
+    expect(savedSettings(cube.id).cubeSize).toBe(32);
+    await gotoHydrated(page, `/cubes/${cube.slug}/edit`);
+    await expect(page.locator('.size-input')).toHaveValue('32');
   });
 });
