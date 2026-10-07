@@ -14,6 +14,10 @@
       cubeSize: data.cube.settings.cubeSize || 360,
       includeAvatars: data.cube.settings.includeAvatars || false,
       includeAllAvatars: data.cube.settings.includeAllAvatars || false,
+      // `??`, not `||`: a saved `false` must stay false. Missing keys (cubes saved
+      // before these settings existed) fall back to the generator's defaults.
+      randomizeCopies: data.cube.settings.randomizeCopies ?? true,
+      elementVariance: data.cube.settings.elementVariance ?? 100,
       rarities: data.cube.settings.rarities || {
         Ordinary: { enabled: true, max: 4 },
         Exceptional: { enabled: true, max: 3 },
@@ -30,6 +34,18 @@
 
   const elements = ['Air', 'Earth', 'Fire', 'Water'];
   const rarityNames = ['Ordinary', 'Exceptional', 'Elite', 'Unique'];
+
+  let genNotes = $state([]);
+  let genBreakdown = $state('');
+
+  /** "Air 72 · Earth 68 · Fire 81 · Water 75 (sites 12 / 11 / 14 / 13)" */
+  function formatBreakdown(counts) {
+    if (!counts) return '';
+    const els = elements.filter((el) => el in counts.spells);
+    const spells = els.map((el) => `${el} ${counts.spells[el]}`).join(' · ');
+    const sites = els.map((el) => counts.sites[el]).join(' / ');
+    return `${spells} (sites ${sites})`;
+  }
 
   function toggleSet(setId) {
     if (settings.sets.includes(setId)) {
@@ -64,6 +80,8 @@
   async function generatePool() {
     generating = true;
     genResult = '';
+    genNotes = [];
+    genBreakdown = '';
 
     // Save settings first
     await fetch(`/api/cubes/${data.cube.id}`, {
@@ -77,6 +95,13 @@
 
     if (res.ok) {
       genResult = `Generated cube with ${json.poolSize} cards!`;
+      genNotes = json.notes ?? [];
+      genBreakdown = formatBreakdown(json.elementCounts);
+      // An overshoot saved a bigger size server-side; adopt it, or the next
+      // Save/Generate would PATCH the old size back.
+      if (json.cubeSize && json.cubeSize !== settings.cubeSize) {
+        settings.cubeSize = json.cubeSize;
+      }
       if (json.warning) {
         genWarning = json.warning;
         setTimeout(() => {
@@ -147,11 +172,41 @@
           </button>
         {/each}
       </div>
+      <div class="variance">
+        <label for="element-variance">Element variance: {settings.elementVariance}%</label>
+        <input
+          id="element-variance"
+          type="range"
+          min="30"
+          max="100"
+          step="5"
+          bind:value={settings.elementVariance}
+          disabled={settings.elements.length === 1}
+        />
+        <div class="variance-ends">
+          <span>30% (near even)</span>
+          <span>100% (fully random)</span>
+        </div>
+        <p class="hint">
+          How far each element's share can stray from an even split. Colourless and multi-element
+          cards aren't affected.
+        </p>
+      </div>
     </section>
 
     <section class="setting-section">
       <h2>Rarities & Max Copies</h2>
       <p>Toggle rarities and set max copies per card.</p>
+      <label class="rarity-toggle randomize-toggle">
+        <input type="checkbox" bind:checked={settings.randomizeCopies} />
+        <span>Randomize copy counts</span>
+      </label>
+      {#if !settings.randomizeCopies}
+        <p class="hint copies-hint">
+          Every card gets standard copies: 4 Ordinary, 3 Exceptional, 2 Elite, 1 Unique. The cube
+          size may round up by a few cards to fit the last card.
+        </p>
+      {/if}
       <div class="rarity-grid">
         {#each rarityNames as rarity}
           <div class="rarity-row">
@@ -165,6 +220,7 @@
                 type="number"
                 class="input max-input"
                 bind:value={settings.rarities[rarity].max}
+                disabled={!settings.randomizeCopies}
                 min="1"
                 max="10"
               />
@@ -201,6 +257,16 @@
 
   {#if genResult}
     <p class="gen-result">{genResult}</p>
+  {/if}
+  {#if genBreakdown}
+    <p class="gen-breakdown">{genBreakdown}</p>
+  {/if}
+  {#if genNotes.length > 0}
+    <ul class="gen-notes">
+      {#each genNotes as note (note)}
+        <li>{note}</li>
+      {/each}
+    </ul>
   {/if}
 </div>
 
@@ -306,6 +372,42 @@
   }
   .max-input {
     width: 60px;
+  }
+  /* The app has no global disabled styling, so make greyed-out inputs look it. */
+  .max-input:disabled,
+  .variance input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .randomize-toggle {
+    margin-bottom: 0.75rem;
+  }
+  .hint {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+  }
+  .variance {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-top: 1rem;
+    font-size: 0.85rem;
+  }
+  .variance-ends {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+  }
+  .gen-breakdown {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+  }
+  .gen-notes {
+    margin: 0.5rem 0 0;
+    padding-left: 1.2rem;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
   }
 
   .actions {

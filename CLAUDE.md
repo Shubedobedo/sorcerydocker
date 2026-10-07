@@ -261,6 +261,24 @@ entry are listed (0 = not listed), clamped to `0..quantity` by `PATCH /api/trade
 - `removeFromCollection()` in the same file is shared by single "Mark Traded" and the bulk
   path. It is synchronous (better-sqlite3 transactions cannot await), so keep it that way.
 
+### Cube generation
+
+`POST /api/cubes/[id]/generate` loads and filters the catalog; every generation rule
+lives in the pure, DB-free `src/lib/server/cubePool.js` (`buildPool`), which takes an
+injectable `rng` so `tests/cube-pool.spec.js` can seed it.
+
+- **Colourless cards are stored as `elements = ["None"]`, not `[]`.** Use
+  `cardElements()` / `passesElementFilter()` rather than reading `elements` directly —
+  checking `length === 0` silently treats every colourless card as an element card.
+- Settings `randomizeCopies` (default `true`) and `elementVariance` (30–100, default 100) live in `cubes.settings`; read them with `??` (via `normalizeSettings`), never
+  `||`, or a saved `false` turns back into `true`.
+- Copies off uses the standard 4/3/2/1 regardless of the per-rarity max, never
+  truncates, and may overshoot the size by up to 3 — the endpoint then saves the new
+  `cubeSize`, and the edit page adopts it from the response.
+- Shuffle with `shuffle()` (Fisher–Yates), never `sort(() => Math.random() - 0.5)`,
+  which is biased toward the input order.
+- Basic sites (`basicSites.js`) are added after `buildPool` and are outside every count.
+
 ### Sharing / visibility model
 
 `decks`, `cubes`, and collections have a `visibility` of `private` / `public` /

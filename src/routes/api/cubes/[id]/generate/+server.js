@@ -1,11 +1,18 @@
 import { json } from '@sveltejs/kit';
 import { db } from '$lib/db/index.js';
 import { cubes, cubeCards, cards, cardImages } from '$lib/db/schema.js';
-import { eq, and, like } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { BASIC_SITE_COPIES, basicSitesFor, isBasicSite } from '$lib/server/basicSites.js';
+import { buildPool, normalizeSettings, passesElementFilter } from '$lib/server/cubePool.js';
+
+/**
+ * Generates a cube's pool from its saved settings. This handler loads and
+ * filters the catalog and persists the result; every generation rule (shuffle,
+ * element balance, copy counts) lives in $lib/server/cubePool.js.
+ */
 
 /** @type {import('./$types').RequestHandler} */
-export async function POST({ locals, request, params }) {
+export async function POST({ locals, params }) {
   const session = await locals.auth();
   if (!session?.user) return json({ error: 'Unauthorized' }, { status: 401 });
 
@@ -24,9 +31,11 @@ export async function POST({ locals, request, params }) {
     includeAvatars = false,
     includeAllAvatars = false
   } = settings;
+  const { randomizeCopies, elementVariance } = normalizeSettings(settings);
+  const target = Number(cubeSize);
 
-  // Fetch all cards from the database. Basic sites stay out of the random draw:
-  // they are added afterwards at a fixed count and don't use up the cube size.
+  // Basic sites stay out of the draw: they are added afterwards at a fixed
+  // count and don't use up the cube size.
   const catalog = await db.select().from(cards);
   const catalogIds = new Set(catalog.map((c) => c.id));
   let allCards = catalog.filter((c) => !isBasicSite(c.id));
@@ -57,20 +66,9 @@ export async function POST({ locals, request, params }) {
     });
   }
 
-  // Separate avatars from the main pool
-  const avatarCards = allCards.filter((c) => c.type === 'Avatar');
-  if (!includeAvatars) {
-    allCards = allCards.filter((c) => c.type !== 'Avatar');
-  }
-
-  // Filter by elements — ALL of a card's elements must be in the allowed set
-  if (allowedElements.length > 0) {
-    allCards = allCards.filter((c) => {
-      const cardElements = JSON.parse(c.elements || '[]');
-      if (cardElements.length === 0) return true; // colorless/none cards are always allowed
-      return cardElements.every((el) => allowedElements.includes(el));
-    });
-  }
+  // Colourless cards are stored as ["None"]; they stay eligible whatever
+  // elements are selected. Multi-element cards need every element selected.
+  allCards = allCards.filter((c) => passesElementFilter(c, allowedElements));
 
   // Filter by rarities (only include enabled rarities)
   const enabledRarities = Object.keys(rarities).filter((r) => rarities[r]?.enabled !== false);
@@ -78,61 +76,28 @@ export async function POST({ locals, request, params }) {
     allCards = allCards.filter((c) => c.type === 'Avatar' || enabledRarities.includes(c.rarity));
   }
 
-  // Build the cube pool by randomly adding copies up to max per rarity until we hit cubeSize
-  const pool = {}; // card.id -> quantity
-  const cardCounts = {}; // card.id -> current count
-
-  let totalAdded = 0;
-
-  // If includeAllAvatars, add them all upfront (1 each)
-  if (includeAvatars && includeAllAvatars && avatarCards.length > 0) {
-    for (const avatar of avatarCards) {
-      pool[avatar.id] = 1;
-      cardCounts[avatar.id] = 1;
-      totalAdded += 1;
-    }
+  // Avatars: every one up front (1 each), into the draw, or none at all.
+  let upfront = [];
+  if (!includeAvatars) {
+    allCards = allCards.filter((c) => c.type !== 'Avatar');
+  } else if (includeAllAvatars) {
+    upfront = allCards.filter((c) => c.type === 'Avatar');
+    allCards = allCards.filter((c) => c.type !== 'Avatar');
   }
 
-  // Shuffle the eligible cards
-  const shuffled = [...allCards].sort(() => Math.random() - 0.5);
-
-  let passes = 0;
-  const maxPasses = 100; // safety limit
-
-  while (totalAdded < cubeSize && passes < maxPasses) {
-    let addedThisPass = 0;
-
-    for (const card of shuffled) {
-      if (totalAdded >= cubeSize) break;
-
-      const rarity = card.rarity || 'Ordinary';
-      const maxCopies =
-        card.type === 'Avatar' ? 1 : (rarities[rarity]?.max ?? getDefaultMax(rarity));
-      const currentCount = cardCounts[card.id] || 0;
-
-      if (currentCount < maxCopies) {
-        // Randomly decide how many to add this pass (1 to remaining allowed)
-        const remaining = maxCopies - currentCount;
-        const spaceLeft = cubeSize - totalAdded;
-        const toAdd = Math.min(Math.ceil(Math.random() * remaining), spaceLeft);
-
-        cardCounts[card.id] = currentCount + toAdd;
-        pool[card.id] = (pool[card.id] || 0) + toAdd;
-        totalAdded += toAdd;
-        addedThisPass += toAdd;
-      }
-    }
-
-    // If we couldn't add anything, all cards are at max
-    if (addedThisPass === 0) break;
-
-    // Re-shuffle for next pass for more randomness
-    shuffled.sort(() => Math.random() - 0.5);
-    passes++;
-  }
+  const result = buildPool({
+    cards: allCards,
+    upfront,
+    elements: allowedElements,
+    cubeSize: target,
+    rarities,
+    randomizeCopies,
+    elementVariance
+  });
 
   // Add the basic site of every allowed element, regardless of the set filter.
-  // totalAdded is left alone: basics don't count toward the cube size.
+  // They don't count toward the cube size.
+  const pool = { ...result.pool };
   for (const basicId of basicSitesFor(allowedElements)) {
     if (catalogIds.has(basicId)) pool[basicId] = BASIC_SITE_COPIES;
   }
@@ -148,29 +113,20 @@ export async function POST({ locals, request, params }) {
     });
   }
 
-  await db.update(cubes).set({ updated_at: new Date().toISOString() }).where(eq(cubes.id, cube.id));
+  // An overshoot (copies off) becomes the saved size, in the same update that
+  // stamps updated_at, so the settings describe the pool they produced.
+  const update = { updated_at: new Date().toISOString() };
+  if (result.cubeSize !== target) {
+    update.settings = JSON.stringify({ ...settings, cubeSize: result.cubeSize });
+  }
+  await db.update(cubes).set(update).where(eq(cubes.id, cube.id));
 
   return json({
     success: true,
-    poolSize: totalAdded,
-    warning:
-      totalAdded < cubeSize
-        ? `Could only generate ${totalAdded}/${cubeSize} cards with current settings`
-        : null
+    poolSize: result.totalAdded,
+    cubeSize: result.cubeSize,
+    warning: result.warning,
+    notes: result.notes,
+    elementCounts: result.elementCounts
   });
-}
-
-function getDefaultMax(rarity) {
-  switch (rarity) {
-    case 'Ordinary':
-      return 4;
-    case 'Exceptional':
-      return 3;
-    case 'Elite':
-      return 2;
-    case 'Unique':
-      return 1;
-    default:
-      return 4;
-  }
 }
