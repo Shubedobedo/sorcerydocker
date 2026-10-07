@@ -102,6 +102,7 @@
             <a href="/decks/{deck.slug}" class="deck-link">
               <h3>{deck.name}</h3>
               <span class="deck-format">{deck.format}</span>
+              {#if deck.cube_name}<span class="deck-cube">from {deck.cube_name}</span>{/if}
             </a>
             <div class="deck-actions">
               <a href="/decks/{deck.slug}/edit" class="btn btn-secondary btn-sm">Edit</a>
@@ -123,6 +124,7 @@
           <a href="/decks/{deck.slug}" class="deck-card deck-link">
             <h3>{deck.name}</h3>
             <span class="deck-format">{deck.format}</span>
+            {#if deck.cube_name}<span class="deck-cube">from {deck.cube_name}</span>{/if}
           </a>
         {/each}
       </div>
@@ -201,6 +203,13 @@
     margin: 0 0 0.25rem;
     font-size: 1rem;
     color: var(--color-text);
+  }
+
+  .deck-cube {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
   }
 
   .deck-format {

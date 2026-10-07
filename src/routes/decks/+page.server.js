@@ -1,12 +1,13 @@
 import { db } from '$lib/db/index.js';
 import { decks, users, friendships, cubes } from '$lib/db/schema.js';
-import { eq, desc, and, or, inArray } from 'drizzle-orm';
+import { eq, desc, and, or, inArray, getTableColumns } from 'drizzle-orm';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ locals }) {
   const session = await locals.auth();
 
-  // Get public decks
+  // Get public decks. A cube deck names its cube only when that cube is public
+  // too, so a public deck can't leak the name of a private cube.
   const publicDecks = await db
     .select({
       id: decks.id,
@@ -15,9 +16,11 @@ export async function load({ locals }) {
       slug: decks.slug,
       user_id: decks.user_id,
       created_at: decks.created_at,
-      updated_at: decks.updated_at
+      updated_at: decks.updated_at,
+      cube_name: cubes.name
     })
     .from(decks)
+    .leftJoin(cubes, and(eq(cubes.id, decks.cube_id), eq(cubes.visibility, 'public')))
     .where(eq(decks.visibility, 'public'))
     .orderBy(desc(decks.updated_at))
     .limit(20);
@@ -27,9 +30,11 @@ export async function load({ locals }) {
   let friendDecks = [];
   let availableCubes = [];
   if (session?.user?.id) {
+    // The owner chose the cube when building the deck, so always name it here.
     userDecks = await db
-      .select()
+      .select({ ...getTableColumns(decks), cube_name: cubes.name })
       .from(decks)
+      .leftJoin(cubes, eq(cubes.id, decks.cube_id))
       .where(eq(decks.user_id, session.user.id))
       .orderBy(desc(decks.updated_at));
 
